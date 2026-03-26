@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MathSabaq — Бүтін сандарды қосу</title>
+
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+
+<!-- Socket.io -->
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+:root {
+  --blue:       #1a56db;
+  --blue-dark:  #1e429f;
+  --blue-light: #ebf5ff;
+  --red:        #e02424;
+  --red-light:  #fdf2f2;
+  --white:      #ffffff;
+  --gray-50:    #f9fafb;
+  --gray-100:   #f3f4f6;
+  --gray-200:   #e5e7eb;
+  --gray-400:   #9ca3af;
+  --gray-600:   #4b5563;
+  --gray-800:   #1f2937;
+  --text:       #111827;
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.12);
+  --radius:     14px;
+  --radius-sm:  8px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  background: var(--gray-50);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.topbar {
+  background: var(--white);
+  border-bottom: 2px solid var(--blue);
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--blue-dark);
+}
+
+.topbar-logo .dot {
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+}
+
+.lang-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+}
+
+.lang-btn {
+  padding: 5px 12px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 32px;
+  touch-action: manipulation;
+}
+
+.lang-btn.active {
+  background: var(--blue);
+  color: var(--white);
+  border-radius: 6px;
+}
+
+.screen { display: none; padding: 16px; }
+.screen.active { display: block; }
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  margin-bottom: 12px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  touch-action: manipulation;
+  min-height: 52px;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(26,86,219,0.3);
+}
+.btn-primary:active { background: var(--blue-dark); transform: scale(0.98); }
+
+.btn-danger {
+  background: var(--red);
+  color: var(--white);
+}
+.btn-danger:active { opacity: 0.85; transform: scale(0.98); }
+
+.btn-outline {
+  background: var(--white);
+  color: var(--blue);
+  border: 2px solid var(--blue);
+}
+.btn-outline:active { background: var(--blue-light); }
+
+.btn-gray {
+  background: var(--gray-100);
+  color: var(--gray-800);
+  border: 1px solid var(--gray-200);
+}
+
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.15s;
+  background: var(--white);
+  color: var(--text);
+}
+.input:focus { border-color: var(--blue); }
+
+.room-code {
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 10px;
+  color: var(--blue-dark);
+  text-align: center;
+  padding: 16px;
+  background: var(--blue-light);
+  border-radius: var(--radius);
+  border: 2px dashed var(--blue);
+  margin: 12px 0;
+}
+
+.student-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.student-card {
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  border: 2px solid var(--gray-200);
+  transition: border-color 0.2s;
+}
+
+.student-card.correct { border-color: #22c55e; background: #f0fdf4; }
+.student-card.wrong   { border-color: var(--red); background: var(--red-light); }
+
+.student-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-score {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--blue-dark);
+}
+
+.student-stats {
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-top: 2px;
+}
+
+.accuracy-bar {
+  height: 4px;
+  background: var(--gray-200);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.accuracy-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  transition: width 0.4s;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gray-400);
+  margin-bottom: 10px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid var(--gray-200);
+}
+
+.rank-badge {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.rank-1 { background: #fef3c7; color: #d97706; }
+.rank-2 { background: var(--gray-100); color: var(--gray-600); }
+.rank-3 { background: #fdf2f2; color: var(--red); }
+.rank-n { background: var(--blue-light); color: var(--blue); }
+
+.lb-name { flex: 1; font-weight: 600; font-size: 15px; }
+.lb-score { font-size: 20px; font-weight: 900; color: var(--blue-dark); }
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17,24,39,0.85);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+.overlay.show { display: flex; }
+.overlay-box {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  max-width: 320px;
+  width: 100%;
+}
+.overlay-icon { font-size: 52px; margin-bottom: 12px; }
+.overlay-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.overlay-sub { color: var(--gray-600); font-size: 14px; }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--gray-800);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999;
+  transition: transform 0.3s;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.cfp {
+  position: fixed;
+  top: -20px;
+  animation: cffall linear forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+@keyframes cffall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+.hidden  { display: none !important; }
+.mt-8    { margin-top: 8px; }
+.mt-12   { margin-top: 12px; }
+.mt-16   { margin-top: 16px; }
+.mb-12   { margin-bottom: 12px; }
+.text-center { text-align: center; }
+.text-sm { font-size: 13px; }
+.text-muted { color: var(--gray-400); }
+.fw-700 { font-weight: 700; }
+.gap-8  { display: flex; flex-direction: column; gap: 8px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <span>MathSabaq</span>
+    <div class="dot"></div>
+    <span id="app-label" data-kk="Бүтін сандарды қосу" data-ru="Сложение целых чисел">Бүтін сандарды қосу</span>
+  </div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('kk')">ҚАЗ</button>
+    <button class="lang-btn" onclick="setLang('ru')">РУС</button>
+  </div>
+</div>
+
+<!-- TEACHER: SETUP screen -->
+<div class="screen active" id="screen-setup">
+  <div class="card">
+    <div class="section-title" data-kk="ДЕҢГЕЙ ТАҢДАҢЫЗ" data-ru="ВЫБЕРИТЕ УРОВЕНЬ">ДЕҢГЕЙ ТАҢДАҢЫЗ</div>
+    <div class="gap-8 mt-8">
+      <button class="btn btn-outline" onclick="selectLevel('easy')" data-kk="🟢 Оңай (бір таңбалы сандар)" data-ru="🟢 Лёгкий (однозначные числа)">🟢 Оңай (бір таңбалы сандар)</button>
+      <button class="btn btn-outline" onclick="selectLevel('medium')" data-kk="🟡 Орташа (екі таңбалы сандар)" data-ru="🟡 Средний (двузначные числа)">🟡 Орташа (екі таңбалы сандар)</button>
+      <button class="btn btn-outline" onclick="selectLevel('hard')" data-kk="🔴 Қиын (үш таңбалы сандар)" data-ru="🔴 Сложный (трёхзначные числа)">🔴 Қиын (үш таңбалы сандар)</button>
+    </div>
+  </div>
+  <button class="btn btn-primary mt-12" onclick="createRoom()">
+    <span>🚀</span>
+    <span data-kk="Бөлме жасау" data-ru="Создать комнату">Бөлме жасау</span>
+  </button>
+</div>
+
+<!-- TEACHER: LOBBY screen -->
+<div class="screen" id="screen-lobby">
+  <div class="card text-center">
+    <div class="section-title" data-kk="БӨЛМЕ КОДЫ" data-ru="КОД КОМНАТЫ">БӨЛМЕ КОДЫ</div>
+    <div class="room-code" id="room-code-display">—</div>
+    <button class="btn btn-gray mt-8" onclick="copyCode()">
+      <span>📋</span>
+      <span data-kk="Кодты көшіру" data-ru="Копировать код">Кодты көшіру</span>
+    </button>
+  </div>
+  <div class="card">
+    <div class="section-title">
+      <span data-kk="ОҚУШЫЛАР" data-ru="УЧЕНИКИ">ОҚУШЫЛАР</span>
+      <span id="student-count"> (0)</span>
+    </div>
+    <div id="lobby-student-list" class="gap-8"></div>
+  </div>
+  <button class="btn btn-primary" onclick="startQuiz()" id="start-btn">
+    <span>▶</span>
+    <span data-kk="Бастау" data-ru="Начать">Бастау</span>
+  </button>
+</div>
+
+<!-- TEACHER: LIVE screen -->
+<div class="screen" id="screen-live">
+  <div style="display:flex; gap:8px; margin-bottom:12px">
+    <button class="btn btn-outline" style="flex:1" onclick="togglePause()" id="pause-btn">
+      <span id="pause-icon">⏸</span>
+      <span id="pause-label" data-kk="Тоқтату" data-ru="Пауза">Тоқтату</span>
+    </button>
+    <button class="btn btn-danger" style="flex:1" onclick="endQuiz()">
+      <span>⏹</span>
+      <span data-kk="Аяқтау" data-ru="Завершить">Аяқтау</span>
+    </button>
+  </div>
+  <div class="student-grid" id="live-grid"></div>
+</div>
+
+<!-- TEACHER: RESULTS screen -->
+<div class="screen" id="screen-results">
+  <div class="card text-center mb-12">
+    <div style="font-size:48px">🏆</div>
+    <div style="font-size:20px; font-weight:700; margin-top:8px"
+      data-kk="Нәтижелер" data-ru="Результаты">Нәтижелер</div>
+  </div>
+  <div id="leaderboard-list"></div>
+  <button class="btn btn-primary mt-12" onclick="newGame()">
+    <span>🔄</span>
+    <span data-kk="Жаңа сабақ" data-ru="Новый урок">Жаңа сабақ</span>
+  </button>
+</div>
+
+<div id="confetti-container"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ENGINE — DO NOT MODIFY -->
+<script>
+let lang = 'kk';
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('[data-kk]').forEach(el => {
+    el.textContent = el.dataset[l] || el.dataset.kk;
+  });
+  document.querySelectorAll('.lang-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&l==='kk')||(i===1&&l==='ru'));
+  });
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+}
+
+function showToast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function copyCode() {
+  const code = document.getElementById('room-code-display').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(() => showToast('📋 ' + code));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = code; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('📋 ' + code);
+  }
+}
+
+function spawnConfetti() {
+  const wrap = document.getElementById('confetti-container');
+  wrap.innerHTML = '';
+  const cols = ['#1a56db','#e02424','#22c55e','#f59e0b','#8b5cf6','#06b6d4'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'cfp';
+    const s = 6 + Math.random() * 8;
+    el.style.cssText = `left:${Math.random()*100}vw;width:${s}px;height:${s}px;`
+      + `background:${cols[~~(Math.random()*cols.length)]};`
+      + `border-radius:${Math.random()>.5?'50%':'2px'};`
+      + `animation-duration:${2+Math.random()*2.5}s;`
+      + `animation-delay:${Math.random()*1.2}s`;
+    wrap.appendChild(el);
+  }
+  setTimeout(() => wrap.innerHTML = '', 6000);
+}
+
+const isTeacher = true;
+const APP_TYPE = 'adding-integers';
+
+const socket = io();
+
+let roomCode = '';
+let isPaused = false;
+let students = {};
+
+function createRoom() {
+  const config = getConfig();
+  socket.emit('create_room', { appType: APP_TYPE, config });
+}
+
+socket.on('room_created', ({ code }) => {
+  roomCode = code;
+  document.getElementById('room-code-display').textContent = code;
+  showScreen('lobby');
+});
+
+socket.on('student_joined', ({ students: s }) => {
+  students = s;
+  updateLobbyList();
+  updateLiveGrid();
+});
+
+socket.on('student_left', ({ students: s }) => {
+  students = s;
+  updateLobbyList();
+  updateLiveGrid();
+});
+
+function updateLobbyList() {
+  const list = document.getElementById('lobby-student-list');
+  const arr = Object.values(students);
+  document.getElementById('student-count').textContent = ` (${arr.length})`;
+  list.innerHTML = arr.map(s =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100)">
+      <span style="font-size:20px">🧑‍🎓</span>
+      <span style="font-weight:600">${s.name}</span>
+    </div>`
+  ).join('');
+}
+
+function updateLiveGrid() {
+  const grid = document.getElementById('live-grid');
+  const arr = Object.values(students).sort((a,b) => b.score - a.score);
+  grid.innerHTML = arr.map((s,i) => {
+    const total = s.correct + s.wrong;
+    const acc = total ? Math.round((s.correct / total) * 100) : 0;
+    return `
+    <div class="student-card" id="sc-${s.socketId}">
+      <div class="student-name">${i+1}. ${s.name}</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <div class="student-score">${s.score}</div>
+        <div class="text-muted text-sm">ұпай</div>
+      </div>
+      <div class="student-stats">✅ ${s.correct} &nbsp; ❌ ${s.wrong}</div>
+      <div class="accuracy-bar"><div class="accuracy-fill" style="width:${acc}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+socket.on('scores_updated', ({ students: s, lastAnswer }) => {
+  students = s;
+  updateLiveGrid();
+  if (lastAnswer) {
+    const card = document.getElementById('sc-' + lastAnswer.socketId);
+    if (card) {
+      card.classList.add(lastAnswer.correct ? 'correct' : 'wrong');
+      setTimeout(() => card.classList.remove('correct', 'wrong'), 800);
+    }
+  }
+});
+
+function startQuiz() {
+  socket.emit('start_quiz', { code: roomCode });
+  showScreen('live');
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  if (isPaused) {
+    socket.emit('pause_quiz', { code: roomCode });
+    document.getElementById('pause-icon').textContent = '▶';
+    document.getElementById('pause-label').setAttribute('data-kk', 'Жалғастыру');
+    document.getElementById('pause-label').setAttribute('data-ru', 'Продолжить');
+    setLang(lang);
+  } else {
+    socket.emit('resume_quiz', { code: roomCode });
+    document.getElementById('pause-icon').textContent = '⏸';
+    document.getElementById('pause-label').setAttribute('data-kk', 'Тоқтату');
+    document.getElementById('pause-label').setAttribute('data-ru', 'Пауза');
+    setLang(lang);
+  }
+}
+
+function endQuiz() {
+  if (!confirm(lang==='kk' ? 'Сабақты аяқтайсыз ба?' : 'Завершить урок?')) return;
+  socket.emit('end_quiz', { code: roomCode });
+  showResults();
+}
+
+function showResults() {
+  showScreen('results');
+  spawnConfetti();
+  const arr = Object.values(students).sort((a,b) => b.score - a.score);
+  document.getElementById('leaderboard-list').innerHTML = arr.map((s,i) => {
+    const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉': i+1;
+    return `
+    <div class="leaderboard-item">
+      <div class="rank-badge ${rankClass}">${medal}</div>
+      <div class="lb-name">${s.name}</div>
+      <div class="lb-score">${s.score}</div>
+    </div>`;
+  }).join('');
+}
+
+function newGame() { location.reload(); }
+
+showScreen('setup');
+</script>
+
+<!-- APP-SPECIFIC CODE -->
+<script>
+let selectedLevel = 'easy';
+
+function selectLevel(lvl) {
+  selectedLevel = lvl;
+  document.querySelectorAll('#screen-setup .btn-outline').forEach(b => b.classList.remove('btn-primary'));
+  event.target.closest('.btn-outline').classList.add('btn-primary');
+}
+
+function getConfig() {
+  return { level: selectedLevel, total: 10 };
+}
+</script>
+
+</body>
+</html>
