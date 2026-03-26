@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MathSabaq — Бүтін сандарды қосу</title>
+
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+
+<!-- Socket.io -->
+<script src="/socket.io/socket.io.js"></script>
+
+<style>
+:root {
+  --blue:       #1a56db;
+  --blue-dark:  #1e429f;
+  --blue-light: #ebf5ff;
+  --red:        #e02424;
+  --red-light:  #fdf2f2;
+  --white:      #ffffff;
+  --gray-50:    #f9fafb;
+  --gray-100:   #f3f4f6;
+  --gray-200:   #e5e7eb;
+  --gray-400:   #9ca3af;
+  --gray-600:   #4b5563;
+  --gray-800:   #1f2937;
+  --text:       #111827;
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.12);
+  --radius:     14px;
+  --radius-sm:  8px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  background: var(--gray-50);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.topbar {
+  background: var(--white);
+  border-bottom: 2px solid var(--blue);
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--blue-dark);
+}
+
+.topbar-logo .dot {
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+}
+
+.lang-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+}
+
+.lang-btn {
+  padding: 5px 12px;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 32px;
+  touch-action: manipulation;
+}
+
+.lang-btn.active {
+  background: var(--blue);
+  color: var(--white);
+  border-radius: 6px;
+}
+
+.screen { display: none; padding: 16px; }
+.screen.active { display: block; }
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  margin-bottom: 12px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  touch-action: manipulation;
+  min-height: 52px;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(26,86,219,0.3);
+}
+.btn-primary:active { background: var(--blue-dark); transform: scale(0.98); }
+
+.btn-danger {
+  background: var(--red);
+  color: var(--white);
+}
+.btn-danger:active { opacity: 0.85; transform: scale(0.98); }
+
+.btn-outline {
+  background: var(--white);
+  color: var(--blue);
+  border: 2px solid var(--blue);
+}
+.btn-outline:active { background: var(--blue-light); }
+
+.btn-gray {
+  background: var(--gray-100);
+  color: var(--gray-800);
+  border: 1px solid var(--gray-200);
+}
+
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.15s;
+  background: var(--white);
+  color: var(--text);
+}
+.input:focus { border-color: var(--blue); }
+
+.question-box {
+  background: var(--blue-light);
+  border: 2px solid var(--blue);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--blue-dark);
+  margin-bottom: 16px;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.option-btn {
+  padding: 16px 12px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--gray-200);
+  background: var(--white);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  touch-action: manipulation;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-btn:active { transform: scale(0.96); }
+.option-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue-dark); }
+.option-btn.correct  { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+.option-btn.wrong    { border-color: var(--red); background: var(--red-light); color: var(--red); }
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17,24,39,0.85);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+.overlay.show { display: flex; }
+.overlay-box {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  max-width: 320px;
+  width: 100%;
+}
+.overlay-icon { font-size: 52px; margin-bottom: 12px; }
+.overlay-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.overlay-sub { color: var(--gray-600); font-size: 14px; }
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid var(--gray-200);
+}
+
+.rank-badge {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.rank-1 { background: #fef3c7; color: #d97706; }
+.rank-2 { background: var(--gray-100); color: var(--gray-600); }
+.rank-3 { background: #fdf2f2; color: var(--red); }
+.rank-n { background: var(--blue-light); color: var(--blue); }
+
+.lb-name { flex: 1; font-weight: 600; font-size: 15px; }
+.lb-score { font-size: 20px; font-weight: 900; color: var(--blue-dark); }
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--gray-800);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999;
+  transition: transform 0.3s;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.cfp {
+  position: fixed;
+  top: -20px;
+  animation: cffall linear forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+@keyframes cffall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+.hidden  { display: none !important; }
+.mt-8    { margin-top: 8px; }
+.mt-12   { margin-top: 12px; }
+.mt-16   { margin-top: 16px; }
+.mb-12   { margin-bottom: 12px; }
+.text-center { text-align: center; }
+.text-sm { font-size: 13px; }
+.text-muted { color: var(--gray-400); }
+.fw-700 { font-weight: 700; }
+.gap-8  { display: flex; flex-direction: column; gap: 8px; }
+
+.progress-bar {
+  height: 6px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <span>MathSabaq</span>
+    <div class="dot"></div>
+    <span id="app-label" data-kk="Бүтін сандарды қосу" data-ru="Сложение целых чисел">Бүтін сандарды қосу</span>
+  </div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('kk')">ҚАЗ</button>
+    <button class="lang-btn" onclick="setLang('ru')">РУС</button>
+  </div>
+</div>
+
+<!-- STUDENT: JOIN screen -->
+<div class="screen active" id="screen-join">
+  <div class="card">
+    <div style="font-size:40px; text-align:center; margin-bottom:16px">🧑‍🎓</div>
+    <div class="section-title text-center" data-kk="АТЫҢЫЗДЫ ЕНГІЗІҢІЗ" data-ru="ВВЕДИТЕ ИМЯ">АТЫҢЫЗДЫ ЕНГІЗІҢІЗ</div>
+    <input class="input mt-8" type="text" id="student-name-input"
+      placeholder="Аты-жөні..."
+      maxlength="30"
+      onkeydown="if(event.key==='Enter')joinRoom()">
+    <div class="section-title mt-12" data-kk="БӨЛМЕ КОДЫ" data-ru="КОД КОМНАТЫ">БӨЛМЕ КОДЫ</div>
+    <input class="input mt-8" type="text" id="room-code-input"
+      placeholder="XXXXX"
+      maxlength="7"
+      style="letter-spacing:6px; font-size:22px; font-weight:700; text-transform:uppercase"
+      onkeydown="if(event.key==='Enter')joinRoom()">
+    <button class="btn btn-primary mt-16" onclick="joinRoom()">
+      <span>→</span>
+      <span data-kk="Кіру" data-ru="Войти">Кіру</span>
+    </button>
+  </div>
+</div>
+
+<!-- STUDENT: WAITING screen -->
+<div class="screen" id="screen-waiting">
+  <div class="card text-center" style="padding:40px 20px">
+    <div class="spinner"></div>
+    <div style="font-weight:700; font-size:18px" data-kk="Мұғалімді күтіңіз..." data-ru="Ожидайте учителя...">Мұғалімді күтіңіз...</div>
+    <div class="text-muted text-sm mt-8" id="waiting-name"></div>
+  </div>
+</div>
+
+<!-- STUDENT: QUIZ screen -->
+<div class="screen" id="screen-quiz">
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div class="question-box" id="question-display"></div>
+  <div class="options-grid" id="options-container"></div>
+  <button class="btn btn-primary hidden" id="next-btn" onclick="nextQuestion()">
+    <span data-kk="Келесі →" data-ru="Следующий →">Келесі →</span>
+  </button>
+</div>
+
+<!-- STUDENT: RESULT screen -->
+<div class="screen" id="screen-student-result">
+  <div class="card text-center" style="padding:32px 20px">
+    <div style="font-size:52px" id="result-emoji">🎉</div>
+    <div style="font-size:28px; font-weight:900; color:var(--blue-dark); margin-top:8px" id="result-score">0</div>
+    <div class="text-muted text-sm mt-8" data-kk="ұпай" data-ru="очков">ұпай</div>
+    <div style="display:flex; gap:16px; justify-content:center; margin-top:16px">
+      <div>
+        <div style="font-size:20px; font-weight:800; color:#22c55e" id="result-correct">0</div>
+        <div class="text-muted text-sm" data-kk="дұрыс" data-ru="верно">дұрыс</div>
+      </div>
+      <div>
+        <div style="font-size:20px; font-weight:800; color:var(--red)" id="result-wrong">0</div>
+        <div class="text-muted text-sm" data-kk="қате" data-ru="неверно">қате</div>
+      </div>
+    </div>
+  </div>
+  <div id="final-leaderboard" class="mt-12"></div>
+</div>
+
+<!-- OVERLAYS -->
+<div class="overlay" id="overlay-pause">
+  <div class="overlay-box">
+    <div class="overlay-icon">⏸️</div>
+    <div class="overlay-title" data-kk="Үзіліс" data-ru="Пауза">Үзіліс</div>
+    <div class="overlay-sub" data-kk="Мұғалім сабақты тоқтатты" data-ru="Учитель поставил на паузу">Мұғалім сабақты тоқтатты</div>
+  </div>
+</div>
+
+<div id="confetti-container"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ENGINE — DO NOT MODIFY -->
+<script>
+let lang = 'kk';
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('[data-kk]').forEach(el => {
+    el.textContent = el.dataset[l] || el.dataset.kk;
+  });
+  document.querySelectorAll('.lang-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&l==='kk')||(i===1&&l==='ru'));
+  });
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if (el) el.classList.add('active');
+}
+
+function showToast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function spawnConfetti() {
+  const wrap = document.getElementById('confetti-container');
+  wrap.innerHTML = '';
+  const cols = ['#1a56db','#e02424','#22c55e','#f59e0b','#8b5cf6','#06b6d4'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'cfp';
+    const s = 6 + Math.random() * 8;
+    el.style.cssText = `left:${Math.random()*100}vw;width:${s}px;height:${s}px;`
+      + `background:${cols[~~(Math.random()*cols.length)]};`
+      + `border-radius:${Math.random()>.5?'50%':'2px'};`
+      + `animation-duration:${2+Math.random()*2.5}s;`
+      + `animation-delay:${Math.random()*1.2}s`;
+    wrap.appendChild(el);
+  }
+  setTimeout(() => wrap.innerHTML = '', 6000);
+}
+
+const params = new URLSearchParams(location.search);
+const urlCode = params.get('join');
+if (urlCode) {
+  const ci = document.getElementById('room-code-input');
+  if (ci) ci.value = urlCode.toUpperCase();
+}
+
+const isTeacher = false;
+const APP_TYPE = 'adding-integers';
+
+const socket = io();
+
+let roomCode = '';
+let myStats = { score: 0, correct: 0, wrong: 0 };
+
+function joinRoom() {
+  const name = document.getElementById('student-name-input')?.value.trim();
+  const code = document.getElementById('room-code-input')?.value.trim().toUpperCase();
+  if (!name) { showToast(lang==='kk' ? 'Атыңызды жазыңыз' : 'Введите имя'); return; }
+  if (!code)  { showToast(lang==='kk' ? 'Кодты жазыңыз' : 'Введите код'); return; }
+  socket.emit('join_room', { code, name });
+  document.getElementById('waiting-name').textContent = name;
+}
+
+socket.on('join_error', ({ message }) => showToast('❌ ' + message));
+
+socket.on('joined', ({ status, code }) => {
+  roomCode = code;
+  if (status === 'lobby' || status === 'active') showScreen('waiting');
+});
+
+socket.on('quiz_started', () => {
+  showScreen('quiz');
+  loadQuestion();
+});
+
+socket.on('quiz_paused',  () => document.getElementById('overlay-pause').classList.add('show'));
+socket.on('quiz_resumed', () => document.getElementById('overlay-pause').classList.remove('show'));
+
+socket.on('quiz_ended', ({ results }) => {
+  showScreen('student-result');
+  document.getElementById('result-score').textContent   = myStats.score;
+  document.getElementById('result-correct').textContent = myStats.correct;
+  document.getElementById('result-wrong').textContent   = myStats.wrong;
+  const emoji = myStats.correct >= (myStats.correct + myStats.wrong) * 0.7 ? '🎉' : myStats.correct > 0 ? '👍' : '💪';
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('final-leaderboard').innerHTML = results.slice(0,5).map((s,i) => {
+    const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉': i+1;
+    return `<div class="leaderboard-item">
+      <div class="rank-badge ${rankClass}">${medal}</div>
+      <div class="lb-name">${s.name}</div>
+      <div class="lb-score">${s.score}</div>
+    </div>`;
+  }).join('');
+  if (results[0]?.socketId === socket.id) spawnConfetti();
+});
+
+socket.on('teacher_disconnected', () => {
+  showToast(lang==='kk' ? '⚠️ Мұғалім байланысын үзді' : '⚠️ Учитель отключился');
+});
+
+function submitAnswer(correct) {
+  socket.emit('submit_answer', { code: roomCode, correct });
+  if (correct) { myStats.score += 10; myStats.correct++; }
+  else { myStats.wrong++; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && roomCode) socket.emit('tab_switch', { code: roomCode });
+});
+
+showScreen('join');
+</script>
+
+<!-- APP-SPECIFIC CODE -->
+<script>
+// ── Question Generator for Adding Integers ──
+// Generates 10 questions dynamically with plausible wrong answers
+
+function generateQuestions() {
+  const questions = [];
+
+  // Question templates: [a, b] where answer = a + b
+  const problems = [
+    // Q1: Easy positive + positive
+    { a: 5, b: 8 },
+    // Q2: Negative + negative
+    { a: -3, b: -7 },
+    // Q3: Positive + negative (result positive)
+    { a: 12, b: -5 },
+    // Q4: Negative + positive (result negative)
+    { a: -15, b: 9 },
+    // Q5: Negative + negative (larger)
+    { a: -23, b: -18 },
+    // Q6: Positive + negative (result negative)
+    { a: 14, b: -26 },
+    // Q7: Zero involved
+    { a: -34, b: 0 },
+    // Q8: Opposite signs, equal magnitude
+    { a: 17, b: -17 },
+    // Q9: Three-digit + negative
+    { a: -48, b: 53 },
+    // Q10: Large negatives
+    { a: -67, b: -45 }
+  ];
+
+  problems.forEach((p, idx) => {
+    const correct = p.a + p.b;
+    const aStr = p.a >= 0 ? `${p.a}` : `(${p.a})`;
+    const bStr = p.b >= 0 ? `${p.b}` : `(${p.b})`;
+
+    // Generate plausible wrong answers (common student mistakes)
+    let wrongs = new Set();
+    // Mistake 1: sign error
+    wrongs.add(-correct);
+    // Mistake 2: subtracted instead of added
+    wrongs.add(p.a - p.b);
+    // Mistake 3: absolute values added with wrong sign
+    wrongs.add(Math.abs(p.a) + Math.abs(p.b));
+    wrongs.add(-(Math.abs(p.a) + Math.abs(p.b)));
+    // Mistake 4: off by 1
+    wrongs.add(correct + 1);
+    wrongs.add(correct - 1);
+    // Mistake 5: confused absolute difference
+    wrongs.add(Math.abs(p.a) - Math.abs(p.b));
+    wrongs.add(-(Math.abs(p.a) - Math.abs(p.b)));
+
+    // Remove correct answer and duplicates
+    wrongs.delete(correct);
+    let wrongArr = [...wrongs].filter(w => w !== correct);
+
+    // Pick 3 distinct wrong answers
+    wrongArr = wrongArr.slice(0, 3);
+    while (wrongArr.length < 3) {
+      const r = correct + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 10) + 2);
+      if (r !== correct && !wrongArr.includes(r)) wrongArr.push(r);
+    }
+
+    // Build options with distributed correct position
+    const correctIdx = idx % 4;
+    const opts = [];
+    let wIdx = 0;
+    for (let i = 0; i < 4; i++) {
+      if (i === correctIdx) {
+        opts.push(`$${correct}$`);
+      } else {
+        opts.push(`$${wrongArr[wIdx]}$`);
+        wIdx++;
+      }
+    }
+
+    questions.push({
+      q: `$${aStr} + ${bStr} = \\ ?$`,
+      opts: opts,
+      correct: correctIdx
+    });
+  });
+
+  return questions;
+}
+
+const QUESTIONS = generateQuestions();
+let currentQ = 0;
+let selectedAnswer = null;
+
+function getConfig() {
+  return { topic: 'adding-integers', total: QUESTIONS.length };
+}
+
+function loadQuestion() {
+  selectedAnswer = null;
+  document.getElementById('next-btn').classList.add('hidden');
+
+  // Update progress bar
+  const pct = Math.round((currentQ / QUESTIONS.length) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  const q = QUESTIONS[currentQ];
+  const qBox = document.getElementById('question-display');
+  qBox.innerHTML = `<div><span style="font-size:13px;color:var(--gray-400)">${currentQ + 1}/${QUESTIONS.length}</span><br>${q.q}</div>`;
+  renderMathInElement(qBox, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});
+
+  const opts = document.getElementById('options-container');
+  opts.innerHTML = q.opts.map((o, i) => `
+    <button class="option-btn" onclick="checkAnswer(${i}, ${i === q.correct})">
+      ${o}
+    </button>`).join('');
+  renderMathInElement(opts, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});
+}
+
+function checkAnswer(idx, correct) {
+  if (selectedAnswer !== null) return;
+  selectedAnswer = idx;
+  document.querySelectorAll('.option-btn').forEach((b, i) => {
+    b.disabled = true;
+    b.style.pointerEvents = 'none';
+    if (i === idx) b.classList.add(correct ? 'correct' : 'wrong');
+    if (!correct && i === QUESTIONS[currentQ].correct) b.classList.add('correct');
+  });
+  submitAnswer(correct);
+  document.getElementById('next-btn').classList.remove('hidden');
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ < QUESTIONS.length) {
+    loadQuestion();
+  } else {
+    document.getElementById('progress-fill').style.width = '100%';
+    showToast(lang === 'kk' ? '✅ Барлық сұрақтар аяқталды!' : '✅ Все вопросы завершены!');
+    document.getElementById('next-btn').classList.add('hidden');
+  }
+}
+</script>
+
+</body>
+</html>
