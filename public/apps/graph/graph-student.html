@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Квадраттық функция — Оқушы</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f8;--bg2:#ffffff;--bg3:#e6e9f0;
+  --border:#d2d6e2;
+  --text:#141826;--text2:#3b4063;--muted:#7a7f9a;
+  --primary:#4338ca;--primary-light:#eef0ff;--primary-dark:#3730a3;
+  --green:#059669;--green-light:#ecfdf5;--green-border:#6ee7b7;
+  --red:#dc2626;--red-light:#fef2f2;--red-border:#fca5a5;
+  --amber:#d97706;
+  --r:14px;
+  --shadow-sm:0 1px 3px rgba(20,24,38,.05);
+  --shadow:0 2px 10px rgba(20,24,38,.07);
+  --shadow-lg:0 8px 30px rgba(20,24,38,.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:16px;-webkit-tap-highlight-color:transparent}
+body{overflow-x:hidden}
+
+.screen{display:none;min-height:100vh;animation:fadeUp .3s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes cfFall{from{transform:translateY(-20px) rotate(0);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+.container{max-width:500px;margin:0 auto;padding:1rem;padding-bottom:2rem}
+
+/* ── JOIN ── */
+.join-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.join-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:var(--shadow-lg)}
+.join-logo{text-align:center;margin-bottom:20px}
+.join-icon{font-size:2.4rem;margin-bottom:6px}
+.join-title{font-size:1.3rem;font-weight:800;margin-bottom:2px}
+.join-sub{color:var(--muted);font-size:.82rem}
+.field{margin-bottom:12px}
+.field label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;display:block;margin-bottom:5px}
+.field input{width:100%;padding:13px 14px;border:2px solid var(--border);border-radius:12px;font-family:inherit;font-size:1rem;font-weight:600;outline:none;transition:border-color .15s;background:var(--bg)}
+.field input:focus{border-color:var(--primary)}
+.field input.code-input{font-family:'JetBrains Mono',monospace;font-size:1.3rem;text-align:center;letter-spacing:6px;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 20px;border:none;border-radius:12px;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s;touch-action:manipulation;min-height:48px}
+.btn:active{transform:scale(.97)}
+.btn-block{width:100%}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(67,56,202,.3)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.err{background:var(--red-light);border:1px solid var(--red-border);border-radius:10px;padding:10px 14px;color:var(--red);font-size:.82rem;font-weight:500;display:none;margin-bottom:10px}
+.err.on{display:block}
+
+/* ── WAIT ── */
+.wait-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}
+.wait-icon{font-size:3.5rem;margin-bottom:12px}
+.wait-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+.wait-sub{color:var(--muted);font-size:.86rem;margin-bottom:16px}
+.wait-name{display:inline-block;background:var(--primary-light);color:var(--primary);border-radius:20px;padding:4px 14px;font-size:.82rem;font-weight:700;margin-top:8px}
+.dots{display:flex;gap:5px;align-items:center;justify-content:center;margin-top:14px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--primary);animation:pulse 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+
+/* ── QUIZ ── */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.6rem .4rem;text-align:center;box-shadow:var(--shadow-sm)}
+.stat-card.hl{background:var(--primary-light);border-color:rgba(67,56,202,.25)}
+.stat-card.g{}.stat-card.r{}.stat-card.a{}
+.stat-icon{font-size:1rem;margin-bottom:.15rem}
+.stat-value{font-size:1.25rem;font-weight:800;color:var(--primary)}
+.stat-card.g .stat-value{color:var(--green)}
+.stat-card.r .stat-value{color:var(--red)}
+.stat-card.a .stat-value{color:var(--amber)}
+.stat-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;font-weight:700}
+.quiz-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:1.25rem;box-shadow:var(--shadow)}
+.q-badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--primary-light);color:var(--primary);padding:.3rem .7rem;border-radius:16px;font-size:.72rem;font-weight:700;margin-bottom:.75rem}
+.func-display{font-size:1.4rem;font-weight:700;color:var(--primary-dark);text-align:center;padding:1rem;background:linear-gradient(135deg,var(--primary-light) 0%,#f0f2ff 100%);border:2px solid rgba(67,56,202,.2);border-radius:16px;margin-bottom:1rem}
+.graphs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1rem}
+.graph-opt{position:relative;border:2.5px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;background:#fff;aspect-ratio:1}
+.graph-opt:active{transform:scale(.98)}
+.graph-opt.selected{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.graph-opt.correct{border-color:var(--green);box-shadow:0 0 0 3px var(--green-light)}
+.graph-opt.wrong{border-color:var(--red);box-shadow:0 0 0 3px var(--red-light)}
+.graph-label{position:absolute;top:5px;left:5px;width:24px;height:24px;background:var(--primary);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:.72rem;z-index:10}
+.graph-opt.correct .graph-label{background:var(--green)}
+.graph-opt.wrong .graph-label{background:var(--red)}
+.graph-container{width:100%;height:100%;overflow:hidden;touch-action:none;position:relative;background:#fff}
+.graph-canvas{position:absolute;top:0;left:0}
+.graph-controls{position:absolute;bottom:5px;right:5px;display:flex;gap:2px;z-index:10}
+.graph-btn{width:26px;height:26px;border:1px solid var(--border);background:rgba(255,255,255,.95);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--muted);font-weight:700;touch-action:manipulation}
+.feedback{text-align:center;padding:.85rem;border-radius:12px;margin-bottom:1rem;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.feedback.correct{background:var(--green-light);color:var(--green);border:1px solid var(--green)}
+.feedback.wrong{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
+.btn-group{display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap}
+.hidden{display:none!important}
+
+/* ── PAUSE OVERLAY ── */
+.pause-overlay{position:fixed;inset:0;background:rgba(20,24,38,.75);backdrop-filter:blur(8px);z-index:999;display:none;align-items:center;justify-content:center}
+.pause-overlay.on{display:flex}
+.pause-box{background:var(--bg2);border-radius:20px;padding:36px 40px;text-align:center;box-shadow:var(--shadow-lg)}
+
+/* ── RESULTS ── */
+.res-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.res-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;width:100%;max-width:400px;text-align:center;box-shadow:var(--shadow-lg)}
+.res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.res-stat{background:var(--bg);border-radius:12px;padding:12px 8px}
+.res-val{font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace}
+.res-lbl{font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-top:2px}
+
+.cfw{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.cfp{position:absolute;animation:cfFall linear forwards}
+</style>
+</head>
+<body>
+<div class="cfw" id="confetti"></div>
+
+<!-- Pause overlay -->
+<div class="pause-overlay" id="pause-overlay">
+  <div class="pause-box">
+    <div style="font-size:3rem;margin-bottom:10px">⏸️</div>
+    <div style="font-size:1.2rem;font-weight:800;margin-bottom:4px">Тоқтатылды</div>
+    <div style="color:var(--muted);font-size:.86rem">Мұғалім сабақты тоқтатты</div>
+    <div class="dots" style="margin-top:14px"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+</div>
+
+<!-- ════ JOIN ════ -->
+<div class="screen active" id="s-join">
+  <div class="join-wrap">
+    <div class="join-card">
+      <div class="join-logo">
+        <div class="join-icon">📈</div>
+        <div class="join-title">Квадраттық функция</div>
+        <div class="join-sub">Графикті табу тесті</div>
+      </div>
+      <div class="err" id="join-err"></div>
+      <div class="field">
+        <label>Аты-жөні</label>
+        <input type="text" id="sname" placeholder="Атыңызды жазыңыз" maxlength="20" autocomplete="off" autocorrect="off">
+      </div>
+      <!-- Code field — hidden if ?join= in URL -->
+      <div class="field" id="code-wrap">
+        <label>Бөлме коды</label>
+        <input type="text" id="scode" class="code-input" placeholder="------" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:4px" onclick="joinRoom()">🚀 Кіру</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ WAIT ════ -->
+<div class="screen" id="s-wait">
+  <div class="wait-wrap">
+    <div class="wait-icon">✅</div>
+    <div class="wait-title">Қосылдыңыз!</div>
+    <div class="wait-sub">Мұғалім сабақты бастағанша күтіңіз</div>
+    <div class="wait-name" id="wait-name"></div>
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+</div>
+
+<!-- ════ QUIZ ════ -->
+<div class="screen" id="s-quiz">
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-card hl"><div class="stat-icon">📊</div><div class="stat-value" id="st-total">0</div><div class="stat-label">Жауап</div></div>
+      <div class="stat-card g"><div class="stat-icon">✓</div><div class="stat-value" id="st-correct">0</div><div class="stat-label">Дұрыс</div></div>
+      <div class="stat-card r"><div class="stat-icon">✗</div><div class="stat-value" id="st-wrong">0</div><div class="stat-label">Қате</div></div>
+      <div class="stat-card a"><div class="stat-icon">🔥</div><div class="stat-value" id="st-streak">0</div><div class="stat-label">Қатарынан</div></div>
+    </div>
+    <div class="quiz-card">
+      <div class="q-badge"><span>📝</span><span>Дұрыс графикті таңдаңыз</span></div>
+      <div class="func-display" id="func-display"></div>
+      <div class="graphs-grid" id="graphs-grid"></div>
+      <div class="feedback hidden" id="feedback"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="check-btn" onclick="checkAnswer()" disabled>✓ Тексеру</button>
+        <button class="btn btn-primary hidden" id="next-btn" onclick="nextQuestion()">Келесі →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ RESULTS ════ -->
+<div class="screen" id="s-results">
+  <div class="res-wrap">
+    <div class="res-card">
+      <div style="font-size:3rem;margin-bottom:8px" id="res-emoji">🏆</div>
+      <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px">Сабақ аяқталды!</div>
+      <div style="color:var(--muted);font-size:.86rem">Нәтижелеріңіз</div>
+      <div class="res-stats">
+        <div class="res-stat"><div class="res-val" id="res-correct" style="color:var(--green)">0</div><div class="res-lbl">Дұрыс</div></div>
+        <div class="res-stat"><div class="res-val" id="res-wrong" style="color:var(--red)">0</div><div class="res-lbl">Қате</div></div>
+        <div class="res-stat"><div class="res-val" id="res-pct" style="color:var(--primary)">0%</div><div class="res-lbl">Пайыз</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────
+const SERVER_URL = 'https://mathsabaq.online';
+const socket = io(SERVER_URL);
+const tex = s => katex.renderToString(s, { throwOnError: false });
+
+// ── State ────────────────────────────────────────────────
+let roomCode = '', sections = [], myName = '';
+let stats = { correct: 0, wrong: 0, streak: 0 };
+let quiz = { selected: null, answered: false };
+const graphInstances = {};
+
+// ── URL params — auto-fill room code ────────────────────
+const urlParams = new URLSearchParams(location.search);
+const urlCode = urlParams.get('join');
+if(urlCode){
+  document.getElementById('scode').value = urlCode.toUpperCase();
+  document.getElementById('code-wrap').style.display = 'none'; // hide field, code already known
+}
+
+// ── Helpers ──────────────────────────────────────────────
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function shuffleArray(arr){const r=[...arr];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function randomChoice(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function spawnConfetti(){
+  const w=document.getElementById('confetti');w.innerHTML='';
+  const cols=['#4338ca','#2563eb','#d97706','#059669','#dc2626'];
+  for(let i=0;i<60;i++){const e=document.createElement('div');e.className='cfp';const s=5+Math.random()*9;e.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;background:${cols[~~(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.4}s`;w.appendChild(e)}
+  setTimeout(()=>w.innerHTML='',6000);
+}
+
+// ── Focus tracking ───────────────────────────────────────
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden && roomCode) socket.emit('tab_switch', { code: roomCode });
+});
+window.addEventListener('blur', () => {
+  if(roomCode) socket.emit('tab_switch', { code: roomCode });
+});
+
+// ── Join room ────────────────────────────────────────────
+function joinRoom(){
+  const name = document.getElementById('sname').value.trim();
+  const code = (urlCode || document.getElementById('scode').value.trim()).toUpperCase();
+  const errEl = document.getElementById('join-err');
+  if(!name){errEl.textContent='Атыңызды жазыңыз';errEl.classList.add('on');return}
+  if(code.length < 4){errEl.textContent='Бөлме кодын енгізіңіз';errEl.classList.add('on');return}
+  errEl.classList.remove('on');
+  myName = name;
+  roomCode = code;
+  socket.emit('join_room', { code, name });
+}
+
+socket.on('join_error', ({ message }) => {
+  const errEl = document.getElementById('join-err');
+  errEl.textContent = message;
+  errEl.classList.add('on');
+});
+
+socket.on('joined', ({ status, config }) => {
+  if(config?.sections) sections = config.sections;
+  document.getElementById('wait-name').textContent = myName;
+  if(status === 'active'){
+    startQuiz();
+  } else if(status === 'paused'){
+    startQuiz();
+    document.getElementById('pause-overlay').classList.add('on');
+  } else {
+    show('s-wait');
+  }
+});
+
+socket.on('quiz_started', ({ config }) => {
+  if(config?.sections) sections = config.sections;
+  if(!sections?.length) sections = ['sec1','sec2','sec3','sec4','sec5'];
+  startQuiz();
+});
+
+socket.on('quiz_paused',  () => document.getElementById('pause-overlay').classList.add('on'));
+socket.on('quiz_resumed', () => document.getElementById('pause-overlay').classList.remove('on'));
+
+socket.on('quiz_ended', () => {
+  document.getElementById('pause-overlay').classList.remove('on');
+  document.getElementById('res-correct').textContent = stats.correct;
+  document.getElementById('res-wrong').textContent   = stats.wrong;
+  const total = stats.correct + stats.wrong;
+  const pct = total ? Math.round(stats.correct / total * 100) : 0;
+  document.getElementById('res-pct').textContent = pct + '%';
+  document.getElementById('res-emoji').textContent = pct >= 70 ? '🎉' : pct >= 40 ? '👍' : '💪';
+  show('s-results');
+  if(pct >= 70) spawnConfetti();
+});
+
+socket.on('teacher_disconnected', () => {
+  document.getElementById('pause-overlay').classList.remove('on');
+  show('s-join');
+});
+
+// ── Start quiz ───────────────────────────────────────────
+function startQuiz(){
+  stats = { correct: 0, wrong: 0, streak: 0 };
+  updateStats();
+  show('s-quiz');
+  loadQuestion();
+}
+
+function updateStats(){
+  document.getElementById('st-total').textContent   = stats.correct + stats.wrong;
+  document.getElementById('st-correct').textContent = stats.correct;
+  document.getElementById('st-wrong').textContent   = stats.wrong;
+  document.getElementById('st-streak').textContent  = stats.streak;
+}
+
+// ══════════════════════════════════════════════
+//  GRAPH VIEW CLASS
+// ══════════════════════════════════════════════
+class GraphView {
+  constructor(canvas, container, params){
+    this.canvas=canvas; this.container=container; this.params=params;
+    this.cx=0; this.cy=0; this.scale=0.05;
+    this.dpr=window.devicePixelRatio||1;
+    this.dragging=false; this.lx=0; this.ly=0;
+    this.resize(); this.setupEvents(); this.draw();
+  }
+  f(x){
+    const p=this.params;
+    if(p.mode==='vertex') return p.a*(x-p.m)*(x-p.m)+p.n;
+    if(p.mode==='standard') return p.a*x*x+p.b*x+p.c_full;
+    return p.a*(x-(p.m||0))*(x-(p.m||0))+(p.n||0);
+  }
+  vertex(){
+    const p=this.params;
+    if(p.mode==='standard'){const vx=-p.b/(2*p.a);return{x:vx,y:this.f(vx)}}
+    return{x:p.m||0,y:p.n||0};
+  }
+  resize(){
+    const r=this.container.getBoundingClientRect();
+    this.w=r.width; this.h=r.height;
+    this.canvas.width=this.w*this.dpr; this.canvas.height=this.h*this.dpr;
+    this.canvas.style.width=this.w+'px'; this.canvas.style.height=this.h+'px';
+    this.ctx=this.canvas.getContext('2d'); this.ctx.scale(this.dpr,this.dpr);
+  }
+  w2s(wx,wy){return{x:this.w/2+(wx-this.cx)/this.scale,y:this.h/2-(wy-this.cy)/this.scale}}
+  s2w(sx,sy){return{x:this.cx+(sx-this.w/2)*this.scale,y:this.cy-(sy-this.h/2)*this.scale}}
+  zoomIn(){this.scale=Math.max(0.01,this.scale*0.7);this.draw()}
+  zoomOut(){this.scale=Math.min(0.5,this.scale*1.4);this.draw()}
+  reset(){this.cx=0;this.cy=0;this.scale=0.05;this.draw()}
+  setupEvents(){
+    const c=this.container;
+    c.addEventListener('mousedown',e=>{if(e.target.classList.contains('graph-btn'))return;this.dragging=true;this.lx=e.clientX;this.ly=e.clientY;e.preventDefault()});
+    c.addEventListener('mousemove',e=>{if(!this.dragging)return;this.cx-=(e.clientX-this.lx)*this.scale;this.cy+=(e.clientY-this.ly)*this.scale;this.lx=e.clientX;this.ly=e.clientY;this.draw()});
+    c.addEventListener('mouseup',()=>this.dragging=false);
+    c.addEventListener('mouseleave',()=>this.dragging=false);
+    c.addEventListener('touchstart',e=>{if(e.target.classList.contains('graph-btn'))return;if(e.touches.length===1){this.dragging=true;this.lx=e.touches[0].clientX;this.ly=e.touches[0].clientY}},{passive:true});
+    c.addEventListener('touchmove',e=>{if(!this.dragging||e.touches.length!==1)return;this.cx-=(e.touches[0].clientX-this.lx)*this.scale;this.cy+=(e.touches[0].clientY-this.ly)*this.scale;this.lx=e.touches[0].clientX;this.ly=e.touches[0].clientY;this.draw()},{passive:true});
+    c.addEventListener('touchend',()=>this.dragging=false);
+  }
+  draw(){
+    const ctx=this.ctx,w=this.w,h=this.h;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+    const hw=(w/2)*this.scale,hh=(h/2)*this.scale;
+    const b={minX:this.cx-hw,maxX:this.cx+hw,minY:this.cy-hh,maxY:this.cy+hh};
+    const ww=b.maxX-b.minX;
+    let gs=1;if(ww>20)gs=5;if(ww>50)gs=10;if(ww<5)gs=0.5;
+    // grid
+    ctx.strokeStyle='#f1f5f9';ctx.lineWidth=1;
+    for(let x=Math.floor(b.minX/gs)*gs;x<=b.maxX;x+=gs){const p=this.w2s(x,0);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,h);ctx.stroke()}
+    for(let y=Math.floor(b.minY/gs)*gs;y<=b.maxY;y+=gs){const p=this.w2s(0,y);ctx.beginPath();ctx.moveTo(0,p.y);ctx.lineTo(w,p.y);ctx.stroke()}
+    // axes
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+    const o=this.w2s(0,0);
+    if(o.y>=0&&o.y<=h){ctx.beginPath();ctx.moveTo(0,o.y);ctx.lineTo(w,o.y);ctx.stroke()}
+    if(o.x>=0&&o.x<=w){ctx.beginPath();ctx.moveTo(o.x,0);ctx.lineTo(o.x,h);ctx.stroke()}
+    // labels
+    ctx.fillStyle='#64748b';ctx.font='500 9px DM Sans,sans-serif';
+    ctx.textAlign='center';
+    for(let x=Math.floor(b.minX/gs)*gs;x<=b.maxX;x+=gs){if(Math.abs(x)<.001)continue;const p=this.w2s(x,0);if(p.x>12&&p.x<w-12)ctx.fillText(Number.isInteger(x)?x:x.toFixed(1),p.x,Math.min(Math.max(o.y+13,13),h-3))}
+    ctx.textAlign='left';
+    for(let y=Math.floor(b.minY/gs)*gs;y<=b.maxY;y+=gs){if(Math.abs(y)<.001)continue;const p=this.w2s(0,y);if(p.y>10&&p.y<h-6)ctx.fillText(Number.isInteger(y)?y:y.toFixed(1),Math.min(Math.max(o.x+3,3),w-18),p.y+4)}
+    ctx.font='700 10px DM Sans,sans-serif';
+    ctx.fillText('x',w-10,Math.min(Math.max(o.y-4,12),h-3));
+    ctx.fillText('y',Math.min(Math.max(o.x+4,4),w-10),10);
+    // parabola
+    ctx.beginPath();ctx.strokeStyle='#4338ca';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+    let started=false;
+    for(let px=-10;px<=w+10;px+=2){const wld=this.s2w(px,0);const wy=this.f(wld.x);const p=this.w2s(wld.x,wy);if(p.y>=-50&&p.y<=h+50){if(!started){ctx.moveTo(p.x,p.y);started=true}else ctx.lineTo(p.x,p.y)}}
+    ctx.stroke();
+    // vertex dot
+    const v=this.vertex(),vs=this.w2s(v.x,v.y);
+    if(vs.x>=-10&&vs.x<=w+10&&vs.y>=-10&&vs.y<=h+10){ctx.beginPath();ctx.arc(vs.x,vs.y,3.5,0,Math.PI*2);ctx.fillStyle='#4338ca';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke()}
+  }
+}
+
+// ══════════════════════════════════════════════
+//  QUESTION GENERATION
+// ══════════════════════════════════════════════
+function formatFunc(p){
+  if(p.mode==='standard'){
+    let s='y = ';const a=p.a,b=p.b,c=p.c_full;
+    if(a===1)s+='x^2';else if(a===-1)s+='-x^2';else s+=a+'x^2';
+    if(b>0)s+=' + '+(b===1?'':b)+'x';else if(b<0)s+=' - '+(b===-1?'':Math.abs(b))+'x';
+    if(c>0)s+=' + '+c;else if(c<0)s+=' - '+Math.abs(c);
+    return s;
+  }
+  const a=p.a,m=p.m||0,n=p.n||0;
+  if(m===0&&n===0){if(a===1)return'y = x^2';if(a===-1)return'y = -x^2';return'y = '+a+'x^2'}
+  let s='y = ';
+  if(m===0){if(a===1)s+='x^2';else if(a===-1)s+='-x^2';else s+=a+'x^2';if(n>0)s+=' + '+n;else if(n<0)s+=' - '+Math.abs(n);return s}
+  if(a===1)s+='';else if(a===-1)s+='-';else s+=a;
+  if(m>0)s+='(x - '+m+')^2';else s+='(x + '+Math.abs(m)+')^2';
+  if(n>0)s+=' + '+n;else if(n<0)s+=' - '+Math.abs(n);
+  return s;
+}
+
+function genForSec(sec){
+  const aV=[-2,-1,-0.5,0.5,1,2];
+  if(sec==='sec1')return{a:randomChoice(aV),m:0,n:0,mode:'vertex'};
+  if(sec==='sec2')return{a:randomChoice(aV),m:0,n:randomChoice([-4,-3,-2,-1,1,2,3,4]),mode:'vertex'};
+  if(sec==='sec3')return{a:randomChoice(aV),m:randomChoice([-3,-2,-1,1,2,3]),n:0,mode:'vertex'};
+  if(sec==='sec4')return{a:randomChoice(aV),m:randomChoice([-3,-2,-1,1,2,3]),n:randomChoice([-3,-2,-1,1,2,3]),mode:'vertex'};
+  if(sec==='sec5'){const a=randomChoice([1,-1,2,-2]),m=randomChoice([-3,-2,-1,1,2,3]),n=randomChoice([-4,-3,-2,-1,0,1,2,3,4]);return{a,b:-2*a*m,c_full:a*m*m+n,mode:'standard'}}
+}
+
+function genWrong(correct, sec){
+  const wrongs=[],used=new Set([JSON.stringify(correct)]);
+  const vars=correct.mode==='standard'
+    ?[{a:-correct.a,b:correct.b,c_full:correct.c_full},{a:correct.a,b:-correct.b,c_full:correct.c_full},{a:correct.a,b:correct.b,c_full:-correct.c_full},{a:-correct.a,b:-correct.b,c_full:correct.c_full},{a:correct.a,b:correct.b,c_full:correct.c_full+3},{a:correct.a*2,b:correct.b,c_full:correct.c_full}].map(v=>({...v,mode:'standard'}))
+    :[{a:-correct.a,m:correct.m||0,n:correct.n||0},{a:correct.a,m:-(correct.m||0),n:correct.n||0},{a:correct.a,m:correct.m||0,n:-(correct.n||0)},{a:-correct.a,m:-(correct.m||0),n:correct.n||0},{a:correct.a,m:correct.m||0,n:(correct.n||0)+3},{a:correct.a*2,m:correct.m||0,n:correct.n||0}].map(v=>({...v,mode:'vertex'}));
+  for(const v of vars){const k=JSON.stringify(v);if(!used.has(k)&&wrongs.length<3){used.add(k);wrongs.push(v)}}
+  while(wrongs.length<3){const p=genForSec(sec);const k=JSON.stringify(p);if(!used.has(k)){used.add(k);wrongs.push(p)}}
+  return wrongs;
+}
+
+// ── Load question ────────────────────────────────────────
+function loadQuestion(){
+  Object.keys(graphInstances).forEach(k=>delete graphInstances[k]);
+  quiz={selected:null,answered:false};
+  const sec=randomChoice(sections);
+  const correct=genForSec(sec);
+  const wrongs=genWrong(correct,sec);
+  const opts=shuffleArray([{params:correct,isCorrect:true},...wrongs.map(w=>({params:w,isCorrect:false}))]);
+
+  document.getElementById('func-display').innerHTML=tex(formatFunc(correct));
+  const labels=['A','B','C','D'];
+  const grid=document.getElementById('graphs-grid');
+  grid.innerHTML='';
+
+  opts.forEach((opt,i)=>{
+    const div=document.createElement('div');
+    div.className='graph-opt';div.dataset.index=i;div.dataset.correct=opt.isCorrect;
+    const lbl=document.createElement('div');lbl.className='graph-label';lbl.textContent=labels[i];
+    const wrap=document.createElement('div');wrap.className='graph-container';
+    const canvas=document.createElement('canvas');canvas.className='graph-canvas';
+    const ctrl=document.createElement('div');ctrl.className='graph-controls';
+    ctrl.innerHTML='<button class="graph-btn" data-a="out">−</button><button class="graph-btn" data-a="in">+</button><button class="graph-btn" data-a="reset">⟲</button>';
+    wrap.appendChild(canvas);wrap.appendChild(ctrl);
+    div.appendChild(lbl);div.appendChild(wrap);grid.appendChild(div);
+    setTimeout(()=>{
+      const g=new GraphView(canvas,wrap,opt.params);graphInstances[i]=g;
+      ctrl.addEventListener('click',e=>{const b=e.target.closest('.graph-btn');if(!b)return;e.stopPropagation();if(b.dataset.a==='in')g.zoomIn();else if(b.dataset.a==='out')g.zoomOut();else g.reset()});
+    },10);
+    div.addEventListener('click',e=>{if(e.target.classList.contains('graph-btn'))return;if(quiz.answered)return;selectOpt(i)});
+  });
+
+  document.getElementById('check-btn').disabled=true;
+  document.getElementById('check-btn').classList.remove('hidden');
+  document.getElementById('next-btn').classList.add('hidden');
+  document.getElementById('feedback').classList.add('hidden');
+}
+
+function selectOpt(idx){
+  if(quiz.answered)return;
+  document.querySelectorAll('.graph-opt').forEach(o=>o.classList.remove('selected'));
+  document.querySelector(`.graph-opt[data-index="${idx}"]`).classList.add('selected');
+  quiz.selected=idx;
+  document.getElementById('check-btn').disabled=false;
+}
+
+function checkAnswer(){
+  if(quiz.selected===null||quiz.answered)return;
+  quiz.answered=true;
+  const opts=document.querySelectorAll('.graph-opt');
+  const sel=opts[quiz.selected];
+  const isCorrect=sel.dataset.correct==='true';
+  opts.forEach(o=>{
+    o.style.pointerEvents='none';
+    if(o.dataset.correct==='true') o.classList.add('correct');
+    else if(o===sel) o.classList.add('wrong');
+  });
+  const fb=document.getElementById('feedback');
+  fb.classList.remove('hidden','correct','wrong');
+  if(isCorrect){
+    stats.correct++;stats.streak++;
+    fb.classList.add('correct');fb.textContent='✓ Дұрыс!';
+  } else {
+    stats.wrong++;stats.streak=0;
+    fb.classList.add('wrong');fb.textContent='✗ Қате! Дұрыс жауап жасыл түспен белгіленді.';
+  }
+  updateStats();
+  socket.emit('submit_answer', { code: roomCode, correct: isCorrect });
+  document.getElementById('check-btn').classList.add('hidden');
+  document.getElementById('next-btn').classList.remove('hidden');
+}
+
+function nextQuestion(){loadQuestion()}
+
+window.addEventListener('resize', ()=>{
+  Object.values(graphInstances).forEach(g=>{if(g?.resize){g.resize();g.draw()}});
+});
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('s-join').classList.contains('active')&&e.key==='Enter') joinRoom();
+});
+</script>
+</body>
+</html>
