@@ -559,10 +559,10 @@ function renderApps(apps) {
       </div>
       <div class="card-divider"></div>
       <div class="card-actions">
-        ${app.teacher ? `<a class="btn-link btn-teacher" href="/${app.slug}-teacher.html">
+        ${app.teacher ? `<a class="btn-link btn-teacher" href="/apps/${app.slug}/teacher.html">
           👩‍🏫 ${teacherLabel}
         </a>` : ''}
-        ${app.student ? `<a class="btn-link btn-student" href="/${app.slug}-student.html">
+        ${app.student ? `<a class="btn-link btn-student" href="/apps/${app.slug}/student.html">
           🧑‍🎓 ${studentLabel}
         </a>` : ''}
       </div>
