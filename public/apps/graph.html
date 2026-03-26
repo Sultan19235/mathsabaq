@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
 :root{
   --bg:#f0f2f8;--bg2:#ffffff;--bg3:#e6e9f0;
@@ -586,7 +586,7 @@ function showT(id) {
 // ══════════════════════════════════════════════
 //  SHARED HELPERS
 // ══════════════════════════════════════════════
-const socket = io();
+const socket = io('https://mathsabaq.online');
 const tex = s => katex.renderToString(s, { throwOnError: false });
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
