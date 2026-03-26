@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Квадраттық функция · MathSabaq</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root{
+  --bg:#f0f2f8;--bg2:#ffffff;--bg3:#e6e9f0;
+  --border:#d2d6e2;--border2:#bcc2d3;
+  --text:#141826;--text2:#3b4063;--muted:#7a7f9a;
+  --primary:#4338ca;--primary-light:#eef0ff;--primary-dark:#3730a3;--primary-glow:rgba(67,56,202,.15);
+  --green:#059669;--green-light:#ecfdf5;--green-border:#6ee7b7;
+  --red:#dc2626;--red-light:#fef2f2;--red-border:#fca5a5;
+  --amber:#d97706;--amber-light:#fffbeb;--amber-border:#fcd34d;
+  --r:14px;
+  --shadow-sm:0 1px 3px rgba(20,24,38,.05);
+  --shadow:0 2px 10px rgba(20,24,38,.07);
+  --shadow-lg:0 8px 30px rgba(20,24,38,.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:16px;-webkit-tap-highlight-color:transparent}
+
+/* ── Screens ── */
+.screen{display:none}
+.screen.active{display:block}
+.screen-flex{display:none}
+.screen-flex.active{display:flex}
+
+/* Teacher screens fill viewport */
+.t-screen{display:none;position:fixed;inset:0;flex-direction:column;overflow:hidden}
+.t-screen.active{display:flex}
+.si{flex:1;display:flex;flex-direction:column;align-items:center;padding:14px;overflow:hidden}
+.si.center{justify-content:center}
+.si.top{justify-content:flex-start;padding-top:14px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes cfFall{from{transform:translateY(-20px) rotate(0);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* ── Shared Components ── */
+.logo{font-size:1.4rem;font-weight:800;letter-spacing:-.5px}
+.logo b{color:var(--primary)}
+.logo-sub{color:var(--muted);font-size:.76rem;margin-top:2px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow-sm)}
+.card-title{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border:none;border-radius:12px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation;min-height:48px}
+.btn:active{transform:scale(.97)}
+.btn-block{width:100%}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 10px rgba(67,56,202,.3)}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(5,150,105,.3)}
+.btn-red{background:var(--red);color:#fff}
+.btn-amber{background:var(--amber);color:#fff}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+.btn-sm{padding:7px 14px;font-size:.76rem;min-height:36px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700}
+.chip-p{background:var(--primary-light);border:1px solid rgba(67,56,202,.2);color:var(--primary)}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--primary);animation:pulse 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+.err{background:var(--red-light);border:1px solid var(--red-border);border-radius:10px;padding:10px 14px;color:var(--red);font-size:.82rem;font-weight:500;display:none;margin-bottom:10px}
+.err.on{display:block}
+.hidden{display:none!important}
+
+/* ══════════════════════════════
+   ROLE SELECTION SCREEN
+══════════════════════════════ */
+.role-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.role-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px 24px;width:100%;max-width:360px;text-align:center;box-shadow:var(--shadow-lg)}
+.role-icon{font-size:2.4rem;margin-bottom:8px}
+.role-title{font-size:1.3rem;font-weight:800;margin-bottom:4px}
+.role-sub{color:var(--muted);font-size:.84rem;margin-bottom:24px}
+.role-btns{display:flex;flex-direction:column;gap:10px}
+.role-btn{padding:16px;border-radius:14px;border:2px solid var(--border);background:var(--bg2);font-size:.95rem;font-weight:700;cursor:pointer;transition:all .15s;touch-action:manipulation;display:flex;align-items:center;gap:12px}
+.role-btn:active{transform:scale(.97)}
+.role-btn.teacher:hover,.role-btn.teacher:focus{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+.role-btn.student:hover,.role-btn.student:focus{border-color:var(--green);background:var(--green-light);color:var(--green)}
+.role-btn-icon{font-size:1.6rem}
+.role-btn-text{text-align:left}
+.role-btn-label{font-size:.95rem;font-weight:800}
+.role-btn-sub{font-size:.72rem;color:var(--muted);font-weight:500}
+
+/* ══════════════════════════════
+   TEACHER SCREENS
+══════════════════════════════ */
+.setup-wrap{width:100%;max-width:640px;height:100%;display:flex;flex-direction:column}
+.setup-hero{text-align:center;margin-bottom:14px;flex-shrink:0}
+.setup-scroll{flex:1;overflow-y:auto;min-height:0;padding-right:4px;margin-bottom:12px}
+.sec-group{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+.sec-group-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:7px;border-bottom:1.5px solid var(--border)}
+.sec-group-title{font-weight:800;font-size:.88rem;color:var(--text)}
+.sec-group-all{font-size:.7rem;background:var(--bg3);border:none;padding:5px 12px;border-radius:7px;cursor:pointer;color:var(--primary);font-weight:700;touch-action:manipulation}
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.sec-btn{padding:12px 10px;border-radius:10px;border:2px solid var(--border);background:var(--bg2);font-size:.78rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;touch-action:manipulation;min-height:52px}
+.sec-btn:active{transform:scale(.96)}
+.sec-btn.selected{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;box-shadow:0 3px 12px rgba(67,56,202,.25)}
+.sec-btn .sec-ex{font-size:.65rem;opacity:.7;font-weight:600;font-family:'JetBrains Mono',monospace}
+
+/* Lobby */
+.lobby-wrap{width:100%;max-width:860px;height:100%;display:flex;flex-direction:column}
+.lobby-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;flex-shrink:0}
+.code-panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;box-shadow:var(--shadow);flex-shrink:0;margin-bottom:8px}
+.code-left{flex:1;min-width:180px}
+.code-lbl{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.code-val{font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:700;color:var(--primary);letter-spacing:8px;line-height:1}
+.code-hint{font-size:.7rem;color:var(--muted);margin-top:5px}
+#qr-box{cursor:pointer;flex-shrink:0}
+#qr-box canvas,#qr-box img{border-radius:8px!important;display:block}
+.lobby-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;overflow:hidden}
+@media(max-width:600px){.lobby-body{grid-template-columns:1fr}}
+.student-list{display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:100%;margin-top:4px}
+.s-join{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;animation:slideIn .2s ease}
+.s-join-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.68rem;flex-shrink:0}
+.s-join-name{font-weight:700;font-size:.78rem}
+.s-join-sub{font-size:.64rem;color:var(--green)}
+.lobby-footer{flex-shrink:0;margin-top:8px}
+
+/* Live */
+.live-wrap{width:100%;max-width:1200px;height:100%;display:flex;flex-direction:column}
+.live-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;flex-shrink:0;margin-bottom:8px}
+.live-title-text{font-size:1rem;font-weight:800}
+.live-meta{font-size:.68rem;color:var(--muted)}
+.live-controls{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.stat-pill{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.room-code-pill{font-family:'JetBrains Mono',monospace;background:var(--primary-light);border:1px solid rgba(67,56,202,.2);color:var(--primary);border-radius:7px;padding:4px 12px;font-size:.78rem;font-weight:700;letter-spacing:3px;cursor:pointer;touch-action:manipulation}
+.cards-wrap{flex:1;overflow-y:auto;min-height:0;padding:2px}
+.cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:900px){.cards-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.cards-grid{grid-template-columns:repeat(2,1fr);gap:6px}}
+.s-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow-sm);transition:all .2s;position:relative;overflow:hidden;animation:pop .3s ease}
+.s-card:nth-child(1){border-color:#fcd34d;background:#fffdf0}
+.s-card:nth-child(2){border-color:#d1d5de;background:#fafbfc}
+.s-card:nth-child(3){border-color:#fdba74;background:#fffaf5}
+.s-card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.s-card-rank{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:800;width:22px;text-align:center;flex-shrink:0}
+.s-card-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0}
+.s-card-name{font-weight:700;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.s-card-focus{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.s-card-focus.on{background:var(--green)}
+.s-card-focus.off{background:var(--red);animation:pulse 1s infinite}
+.s-card-stats{display:flex;gap:6px;align-items:center}
+.s-card-stat{display:flex;align-items:center;gap:3px;font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700}
+.s-card-stat.g{color:var(--green)}.s-card-stat.r{color:var(--red)}
+.s-card-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden}
+.s-card-bar-fill{height:100%;border-radius:2px;transition:width .3s ease}
+.s-card-pct{position:absolute;top:8px;right:10px;font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:800}
+.s-card-total{font-size:.6rem;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.s-card-warn{font-size:.54rem;color:var(--red);font-weight:700;margin-left:auto;flex-shrink:0}
+
+/* Results */
+.results-wrap{width:100%;max-width:800px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.res-hero{text-align:center;margin-bottom:12px;flex-shrink:0}
+.results-body{flex:1;overflow-y:auto;min-height:0;padding-bottom:16px}
+.lb-row{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:5px;box-shadow:var(--shadow-sm)}
+.lb-row:nth-child(1){background:#fffbeb;border-color:#fde68a}
+.lb-row:nth-child(2){background:#f8f9fa;border-color:#d1d5de}
+.lb-row:nth-child(3){background:#fef3e2;border-color:#fed7aa}
+.lb-rank{font-family:'JetBrains Mono',monospace;font-size:.84rem;font-weight:700;width:24px;text-align:center;flex-shrink:0}
+.lb-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-weight:700;font-size:.84rem}
+.lb-detail{font-size:.68rem;color:var(--muted);margin-top:1px;font-family:'JetBrains Mono',monospace}
+.lb-pct{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:800;flex-shrink:0}
+
+/* QR overlay */
+.qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)}
+.qr-overlay.on{display:flex}
+.qr-modal{background:#fff;border-radius:24px;padding:36px;text-align:center;box-shadow:var(--shadow-lg);cursor:default;max-width:90vw}
+.qr-modal-code{font-family:'JetBrains Mono',monospace;font-size:3rem;font-weight:700;color:var(--primary);letter-spacing:12px;margin-top:16px}
+.qr-modal-hint{color:var(--muted);font-size:.84rem;margin-top:8px}
+#qr-big canvas,#qr-big img{border-radius:12px!important}
+
+/* ══════════════════════════════
+   STUDENT SCREENS
+══════════════════════════════ */
+.join-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.join-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:var(--shadow-lg)}
+.join-logo{text-align:center;margin-bottom:20px}
+.join-logo .icon{font-size:2.4rem;margin-bottom:6px}
+.join-logo h1{font-size:1.3rem;font-weight:800}
+.join-logo p{color:var(--muted);font-size:.82rem;margin-top:2px}
+.field{margin-bottom:12px}
+.field label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;display:block;margin-bottom:5px}
+.field input{width:100%;padding:13px 14px;border:2px solid var(--border);border-radius:12px;font-family:inherit;font-size:1rem;font-weight:600;outline:none;transition:border-color .15s;background:var(--bg)}
+.field input:focus{border-color:var(--primary)}
+.field input.code-input{font-family:'JetBrains Mono',monospace;font-size:1.3rem;text-align:center;letter-spacing:6px;text-transform:uppercase}
+
+.wait-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}
+.wait-icon{font-size:3rem;margin-bottom:12px}
+.wait-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+.wait-sub{color:var(--muted);font-size:.86rem}
+
+/* Student quiz */
+.container{max-width:500px;margin:0 auto;padding:1rem;padding-bottom:2rem}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:1rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:.6rem .4rem;text-align:center;box-shadow:var(--shadow-sm)}
+.stat-card.hl{background:var(--primary-light);border-color:rgba(67,56,202,.25)}
+.stat-icon{font-size:1rem;margin-bottom:.15rem}
+.stat-value{font-size:1.25rem;font-weight:800;color:var(--primary)}
+.stat-card.g .stat-value{color:var(--green)}
+.stat-card.r .stat-value{color:var(--red)}
+.stat-card.a .stat-value{color:var(--amber)}
+.stat-label{font-size:.62rem;color:var(--muted);text-transform:uppercase;font-weight:700}
+.quiz-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:1.25rem;box-shadow:var(--shadow)}
+.q-badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--primary-light);color:var(--primary);padding:.3rem .7rem;border-radius:16px;font-size:.72rem;font-weight:700;margin-bottom:.75rem}
+.func-display{font-size:1.4rem;font-weight:700;color:var(--primary-dark);text-align:center;padding:1rem;background:linear-gradient(135deg,var(--primary-light) 0%,#f0f2ff 100%);border:2px solid rgba(67,56,202,.2);border-radius:16px;margin-bottom:1rem}
+.graphs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1rem}
+.graph-option{position:relative;border:2.5px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s ease;background:#fff;aspect-ratio:1}
+.graph-option:active{transform:scale(.98)}
+.graph-option.selected{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.graph-option.correct{border-color:var(--green);box-shadow:0 0 0 3px var(--green-light)}
+.graph-option.incorrect{border-color:var(--red);box-shadow:0 0 0 3px var(--red-light)}
+.graph-label{position:absolute;top:5px;left:5px;width:24px;height:24px;background:var(--primary);color:white;font-weight:800;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:.72rem;z-index:10}
+.graph-option.correct .graph-label{background:var(--green)}
+.graph-option.incorrect .graph-label{background:var(--red)}
+.graph-container{width:100%;height:100%;overflow:hidden;touch-action:none;position:relative;background:#fff}
+.graph-canvas{position:absolute;top:0;left:0}
+.graph-controls{position:absolute;bottom:5px;right:5px;display:flex;gap:2px;z-index:10}
+.graph-btn{width:26px;height:26px;border:1px solid var(--border);background:rgba(255,255,255,.95);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--muted);font-weight:700;touch-action:manipulation}
+.feedback{text-align:center;padding:.85rem;border-radius:12px;margin-bottom:1rem;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.feedback.correct{background:var(--green-light);color:var(--green);border:1px solid var(--green)}
+.feedback.incorrect{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
+.btn-group{display:flex;gap:.6rem;justify-content:center;align-items:center;flex-wrap:wrap}
+
+/* Student results */
+.sres-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.sres-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;width:100%;max-width:400px;text-align:center;box-shadow:var(--shadow-lg)}
+.sres-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.sres-stat{background:var(--bg);border-radius:12px;padding:12px 8px}
+.sres-stat-val{font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace}
+.sres-stat-lbl{font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-top:2px}
+
+/* Pause overlay */
+.pause-overlay{position:fixed;inset:0;background:rgba(20,24,38,.7);backdrop-filter:blur(8px);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.pause-overlay.on{display:flex}
+.pause-box{background:var(--bg2);border-radius:20px;padding:32px 40px;text-align:center;box-shadow:var(--shadow-lg)}
+
+/* Toast */
+#toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:10px 22px;font-size:.84rem;font-weight:600;z-index:9999;transition:transform .28s ease;white-space:nowrap;box-shadow:var(--shadow-lg)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:var(--green-border);color:var(--green)}
+#toast.er{border-color:var(--red-border);color:var(--red)}
+.cfw{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.cfp{position:absolute;animation:cfFall linear forwards}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<div class="cfw" id="confetti"></div>
+
+<!-- ════ QR Overlay (teacher) ════ -->
+<div class="qr-overlay" id="qr-overlay" onclick="closeQR(event)">
+  <div class="qr-modal" onclick="event.stopPropagation()">
+    <div id="qr-big"></div>
+    <div class="qr-modal-code" id="qr-modal-code">------</div>
+    <div class="qr-modal-hint" id="qr-modal-hint"></div>
+  </div>
+</div>
+
+<!-- Pause overlay (student) -->
+<div class="pause-overlay" id="pause-overlay">
+  <div class="pause-box">
+    <div style="font-size:3rem;margin-bottom:8px">⏸️</div>
+    <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px">Тоқтатылды</div>
+    <div style="color:var(--muted);font-size:.86rem">Мұғалім сабақты тоқтатты</div>
+    <div class="dots" style="margin-top:12px;justify-content:center"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     ROLE SELECTION (no URL param)
+════════════════════════════════════════ -->
+<div class="screen active" id="s-role">
+  <div class="role-wrap">
+    <div class="role-card">
+      <div class="role-icon">📈</div>
+      <div class="role-title">Квадраттық функция</div>
+      <div class="role-sub">Графикті табу тесті · Рөліңізді таңдаңыз</div>
+      <div class="role-btns">
+        <button class="role-btn teacher" onclick="setRole('teacher')">
+          <span class="role-btn-icon">👩‍🏫</span>
+          <div class="role-btn-text">
+            <div class="role-btn-label">Мұғалім</div>
+            <div class="role-btn-sub">Бөлме жасап, сабақ бастау</div>
+          </div>
+        </button>
+        <button class="role-btn student" onclick="setRole('student')">
+          <span class="role-btn-icon">🧑‍🎓</span>
+          <div class="role-btn-text">
+            <div class="role-btn-label">Оқушы</div>
+            <div class="role-btn-sub">Бөлмеге код арқылы кіру</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     TEACHER: SETUP
+════════════════════════════════════════ -->
+<div class="t-screen" id="s-setup">
+  <div class="si center">
+    <div class="setup-wrap">
+      <div class="setup-hero">
+        <div class="logo">📈 Квадраттық <b>функция</b></div>
+        <div class="logo-sub">Графикті табу · Бөлімдерді таңдаңыз</div>
+      </div>
+      <div class="setup-scroll">
+        <div class="sec-group">
+          <div class="sec-group-hdr">
+            <span class="sec-group-title">📊 Бөлімдер</span>
+            <button class="sec-group-all" onclick="toggleAll()">Бәрін таңдау</button>
+          </div>
+          <div class="sec-grid">
+            <button class="sec-btn" data-sec="sec1" onclick="toggleSec(this)">
+              <span>y = ax²</span><span class="sec-ex">y = 2x², y = −x²</span>
+            </button>
+            <button class="sec-btn" data-sec="sec2" onclick="toggleSec(this)">
+              <span>y = ax² + c</span><span class="sec-ex">y = x² + 3</span>
+            </button>
+            <button class="sec-btn" data-sec="sec3" onclick="toggleSec(this)">
+              <span>y = a(x − m)²</span><span class="sec-ex">y = (x−2)²</span>
+            </button>
+            <button class="sec-btn" data-sec="sec4" onclick="toggleSec(this)">
+              <span>y = a(x − m)² + n</span><span class="sec-ex">y = (x−1)²+2</span>
+            </button>
+            <button class="sec-btn" data-sec="sec5" onclick="toggleSec(this)">
+              <span>y = ax² + bx + c</span><span class="sec-ex">y = x²−4x+3</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="err" id="setup-err"></div>
+      <button class="btn btn-green btn-block" style="padding:14px;font-size:.92rem;flex-shrink:0" onclick="createRoom()">🚀 Бөлме құру</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     TEACHER: LOBBY
+════════════════════════════════════════ -->
+<div class="t-screen" id="s-lobby">
+  <div class="si top">
+    <div class="lobby-wrap">
+      <div class="lobby-top">
+        <div><div class="logo">📈 Квадраттық <b>функция</b></div><div class="logo-sub" id="lobby-secs">—</div></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="chip chip-p">∞ есеп</span>
+          <button class="btn btn-ghost btn-sm" onclick="backToSetup()">← Өзгерту</button>
+        </div>
+      </div>
+      <div class="code-panel">
+        <div class="code-left">
+          <div class="code-lbl">Бөлме коды</div>
+          <div class="code-val" id="room-code-display">------</div>
+          <div class="code-hint" id="student-url-hint"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="copyCode()">📋 Көшіру</button>
+        </div>
+        <div id="qr-box" onclick="openQR()"></div>
+      </div>
+      <div class="lobby-body">
+        <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
+          <div class="card-title">Оқушылар</div>
+          <div style="display:flex;align-items:baseline;gap:5px;margin-bottom:4px;flex-shrink:0">
+            <span style="font-size:1.6rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--primary)" id="lobby-count">0</span>
+            <span style="color:var(--muted);font-size:.76rem">дайын</span>
+          </div>
+          <div class="student-list" id="lobby-list">
+            <div class="dots" style="padding:8px 0"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="color:var(--muted);font-size:.78rem;margin-left:6px">Күтілуде…</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Нұсқаулық</div>
+          <div style="font-size:.78rem;color:var(--muted);line-height:1.9" id="lobby-instructions">
+            1. Экранды тақтаға көрсетіңіз<br>
+            2. Оқушылар QR кодты сканерлейді<br>
+            3. Атын жазып, кіреді<br>
+            4. <b style="color:var(--green)">Бастау</b> батырмасын басыңыз<br>
+            <em>⚡ Есептер шексіз генерацияланады</em>
+          </div>
+        </div>
+      </div>
+      <div class="lobby-footer">
+        <button class="btn btn-green btn-block" id="start-btn" onclick="startSession()" style="padding:14px;font-size:.92rem" disabled>▶ Бастау (оқушылар күтілуде…)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     TEACHER: LIVE
+════════════════════════════════════════ -->
+<div class="t-screen" id="s-live">
+  <div class="si top">
+    <div class="live-wrap">
+      <div class="live-top">
+        <div>
+          <div class="live-title-text">📈 Квадраттық функция</div>
+          <div class="live-meta" id="live-meta">Тікелей</div>
+        </div>
+        <div class="live-controls">
+          <div class="stat-pill">👥 <span id="student-count">0</span></div>
+          <div class="stat-pill">🎯 <span id="avg-pct">0</span>%</div>
+          <div class="stat-pill" id="away-pill" style="display:none;border-color:var(--red-border);color:var(--red)">⚠️ <span id="away-count">0</span></div>
+          <div class="room-code-pill" id="live-code" onclick="openQR()">------</div>
+          <button class="btn btn-amber btn-sm" id="pause-btn" onclick="pauseSession()">⏸ Тоқтату</button>
+          <button class="btn btn-red btn-sm" onclick="endSession()">Аяқтау</button>
+        </div>
+      </div>
+      <div class="cards-wrap">
+        <div class="cards-grid" id="cards-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     TEACHER: RESULTS
+════════════════════════════════════════ -->
+<div class="t-screen" id="s-results-t">
+  <div class="si top">
+    <div class="results-wrap">
+      <div class="res-hero">
+        <div style="font-size:2rem;margin-bottom:4px">🏆</div>
+        <div style="font-size:1.4rem;font-weight:800;margin-bottom:3px">Нәтижелер</div>
+        <div style="color:var(--muted);font-size:.8rem" id="res-sub"></div>
+      </div>
+      <div class="results-body">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title">🏅 Рейтинг</div>
+          <div id="leaderboard"></div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="newSession()" style="padding:13px">← Жаңа сабақ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     STUDENT: JOIN (name only if code in URL)
+════════════════════════════════════════ -->
+<div class="screen" id="s-join">
+  <div class="join-wrap">
+    <div class="join-card">
+      <div class="join-logo">
+        <div class="icon">📈</div>
+        <h1>Квадраттық функция</h1>
+        <p>Графикті табу тесті</p>
+      </div>
+      <div class="err" id="join-err"></div>
+      <div class="field">
+        <label>Аты-жөні</label>
+        <input type="text" id="sname" placeholder="Атыңызды жазыңыз" maxlength="20" autocomplete="off">
+      </div>
+      <!-- Room code field — hidden if code is in URL -->
+      <div class="field" id="code-field">
+        <label>Бөлме коды</label>
+        <input type="text" id="scode" class="code-input" placeholder="------" maxlength="6" autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="joinRoom()">🚀 Кіру</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     STUDENT: WAIT
+════════════════════════════════════════ -->
+<div class="screen" id="s-wait">
+  <div class="wait-wrap">
+    <div class="wait-icon">✅</div>
+    <div class="wait-title">Қосылдыңыз!</div>
+    <div class="wait-sub">Мұғалім сабақты бастағанша күтіңіз</div>
+    <div class="dots" style="margin-top:14px;justify-content:center"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     STUDENT: QUIZ
+════════════════════════════════════════ -->
+<div class="screen" id="s-quiz">
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-card hl"><div class="stat-icon">📊</div><div class="stat-value" id="st-total">0</div><div class="stat-label">Жауап</div></div>
+      <div class="stat-card g"><div class="stat-icon">✓</div><div class="stat-value" id="st-correct">0</div><div class="stat-label">Дұрыс</div></div>
+      <div class="stat-card r"><div class="stat-icon">✗</div><div class="stat-value" id="st-wrong">0</div><div class="stat-label">Қате</div></div>
+      <div class="stat-card a"><div class="stat-icon">🔥</div><div class="stat-value" id="st-streak">0</div><div class="stat-label">Қатарынан</div></div>
+    </div>
+    <div class="quiz-card">
+      <div class="q-badge"><span>📝</span><span>Графикті таңдаңыз</span></div>
+      <div class="func-display" id="func-display"></div>
+      <div class="graphs-grid" id="graphs-grid"></div>
+      <div class="feedback hidden" id="feedback"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="check-btn" onclick="checkAnswer()" disabled>Тексеру</button>
+        <button class="btn btn-primary hidden" id="next-btn" onclick="nextQuestion()">Келесі →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     STUDENT: RESULTS
+════════════════════════════════════════ -->
+<div class="screen" id="s-results-s">
+  <div class="sres-wrap">
+    <div class="sres-card">
+      <div style="font-size:3rem;margin-bottom:8px">🏆</div>
+      <div style="font-size:1.3rem;font-weight:800;margin-bottom:4px">Сабақ аяқталды!</div>
+      <div style="color:var(--muted);font-size:.86rem">Нәтижелеріңіз</div>
+      <div class="sres-stats">
+        <div class="sres-stat"><div class="sres-stat-val" id="res-correct" style="color:var(--green)">0</div><div class="sres-stat-lbl">Дұрыс</div></div>
+        <div class="sres-stat"><div class="sres-stat-val" id="res-wrong" style="color:var(--red)">0</div><div class="sres-stat-lbl">Қате</div></div>
+        <div class="sres-stat"><div class="sres-stat-val" id="res-pct" style="color:var(--primary)">0%</div><div class="sres-stat-lbl">Пайыз</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  ROLE DETECTION — reads URL param ?role=
+// ══════════════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const urlRole = urlParams.get('role');   // 'teacher' | 'student' | null
+const urlCode = urlParams.get('join');   // room code pre-filled for students
+
+// Auto-fill room code if in URL
+if(urlCode) {
+  const sc = document.getElementById('scode');
+  if(sc) sc.value = urlCode.toUpperCase();
+  // Hide code input field — student just types name
+  document.getElementById('code-field').classList.add('hidden');
+}
+
+// Show initial screen based on role
+if(urlRole === 'teacher') {
+  showT('s-setup');
+} else if(urlRole === 'student') {
+  show('s-join');
+} else {
+  show('s-role'); // no role — show selector
+}
+
+// Role selection buttons
+function setRole(role) {
+  const base = location.origin + location.pathname;
+  if(role === 'teacher') {
+    history.replaceState({}, '', base + '?role=teacher');
+    showT('s-setup');
+  } else {
+    history.replaceState({}, '', base + '?role=student');
+    show('s-join');
+  }
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN HELPERS
+// ══════════════════════════════════════════════
+function show(id) {
+  // Student screens (regular divs)
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+function showT(id) {
+  // Teacher screens (fixed position)
+  document.querySelectorAll('.t-screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+//  SHARED HELPERS
+// ══════════════════════════════════════════════
+const socket = io();
+const tex = s => katex.renderToString(s, { throwOnError: false });
+
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='on '+(type||'');setTimeout(()=>el.classList.remove('on'),3200)}
+function randCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('')}
+function shuffleArray(arr){const r=[...arr];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r}
+function randomChoice(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function spawnConfetti(){const w=document.getElementById('confetti');w.innerHTML='';const cols=['#4338ca','#2563eb','#d97706','#059669','#dc2626','#0891b2','#7c3aed'];for(let i=0;i<72;i++){const e=document.createElement('div');e.className='cfp';const s=5+Math.random()*9;e.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;background:${cols[~~(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.4}s`;w.appendChild(e)}setTimeout(()=>w.innerHTML='',6000)}
+
+// ══════════════════════════════════════════════
+//  TEACHER LOGIC
+// ══════════════════════════════════════════════
+let roomCode = '', selectedSecs = new Set(), isPaused = false;
+let studentsCache = {}, studentJoinUrl = '';
+
+const SEC_NAMES = {
+  sec1:'y = ax²', sec2:'y = ax² + c', sec3:'y = a(x−m)²',
+  sec4:'y = a(x−m)² + n', sec5:'y = ax² + bx + c'
+};
+
+function copyCode(){
+  navigator.clipboard.writeText(roomCode)
+    .then(()=>toast('✅ Көшірілді!','ok'))
+    .catch(()=>{const ta=document.createElement('textarea');ta.value=roomCode;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('✅ Көшірілді!','ok')});
+}
+
+function openQR(){
+  document.getElementById('qr-modal-code').textContent = roomCode;
+  document.getElementById('qr-modal-hint').textContent = 'QR кодты сканерлеңіз';
+  const b = document.getElementById('qr-big'); b.innerHTML = '';
+  try{new QRCode(b,{text:studentJoinUrl,width:280,height:280,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
+  document.getElementById('qr-overlay').classList.add('on');
+}
+function closeQR(e){if(e.target===document.getElementById('qr-overlay'))document.getElementById('qr-overlay').classList.remove('on')}
+
+function toggleSec(el){
+  const s=el.dataset.sec;
+  if(selectedSecs.has(s)){selectedSecs.delete(s);el.classList.remove('selected')}
+  else{selectedSecs.add(s);el.classList.add('selected')}
+}
+function toggleAll(){
+  const btns=document.querySelectorAll('.sec-btn');
+  const allSel=Array.from(btns).every(b=>b.classList.contains('selected'));
+  btns.forEach(b=>{const s=b.dataset.sec;if(allSel){selectedSecs.delete(s);b.classList.remove('selected')}else if(!b.classList.contains('selected')){selectedSecs.add(s);b.classList.add('selected')}});
+}
+
+function createRoom(){
+  if(!selectedSecs.size){
+    document.getElementById('setup-err').textContent='Кем дегенде 1 бөлімді таңдаңыз!';
+    document.getElementById('setup-err').classList.add('on');
+    return;
+  }
+  document.getElementById('setup-err').classList.remove('on');
+  roomCode = randCode();
+  studentsCache = {};
+  socket.emit('create_room', { roomCode, sections: Array.from(selectedSecs) });
+}
+
+socket.on('room_created', ({ roomCode: code }) => {
+  roomCode = code;
+  // QR points to same file with role=student&join=CODE
+  studentJoinUrl = location.origin + location.pathname + '?role=student&join=' + roomCode;
+  document.getElementById('room-code-display').textContent = roomCode;
+  document.getElementById('student-url-hint').textContent = 'QR кодты сканерлеп кіріңіз';
+  document.getElementById('lobby-secs').textContent = selectedSecs.size + ' бөлім таңдалды';
+  document.getElementById('lobby-count').textContent = '0';
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('start-btn').textContent = '▶ Бастау (оқушылар күтілуде…)';
+  // Small QR in lobby
+  const qrBox = document.getElementById('qr-box'); qrBox.innerHTML = '';
+  try{new QRCode(qrBox,{text:studentJoinUrl,width:90,height:90,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
+  showT('s-lobby');
+});
+
+socket.on('lobby_update', (students) => {
+  studentsCache = {};
+  Object.entries(students).forEach(([sid,s])=>{
+    studentsCache[sid] = { name:s.name, color:s.color, correct:0, incorrect:0, totalAnswered:0, focus:{} };
+  });
+  const entries = Object.values(students);
+  document.getElementById('lobby-count').textContent = entries.length;
+  document.getElementById('start-btn').disabled = entries.length === 0;
+  document.getElementById('start-btn').textContent = entries.length
+    ? `▶ Бастау (${entries.length} оқушы)` : '▶ Бастау (оқушылар күтілуде…)';
+  document.getElementById('lobby-list').innerHTML = entries.map(s =>
+    `<div class="s-join"><div class="s-join-av" style="background:${s.color}18;color:${s.color}">${s.name[0].toUpperCase()}</div><div><div class="s-join-name">${esc(s.name)}</div><div class="s-join-sub">✅ Қосылды</div></div></div>`
+  ).join('') || '<div class="dots" style="padding:8px 0"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="color:var(--muted);font-size:.78rem;margin-left:6px">Күтілуде…</span></div>';
+});
+
+socket.on('scores_update', (students) => {
+  Object.entries(students).forEach(([sid,s]) => { studentsCache[sid] = s; });
+  renderCards();
+  updateLiveStats();
+});
+
+function backToSetup(){socket.emit('remove_room');studentsCache={};showT('s-setup')}
+
+function startSession(){
+  if(!Object.keys(studentsCache).length){toast('Оқушылар жоқ!','er');return}
+  isPaused = false;
+  socket.emit('start_session');
+  document.getElementById('live-code').textContent = roomCode;
+  document.getElementById('live-meta').textContent = 'Тікелей · ' + Array.from(selectedSecs).map(s=>SEC_NAMES[s]).join(', ');
+  document.getElementById('student-count').textContent = Object.keys(studentsCache).length;
+  document.getElementById('pause-btn').textContent = '⏸ Тоқтату';
+  document.getElementById('pause-btn').className = 'btn btn-amber btn-sm';
+  renderCards();
+  showT('s-live');
+}
+
+function pauseSession(){
+  if(!isPaused){
+    isPaused=true; socket.emit('pause_session',{paused:true});
+    document.getElementById('pause-btn').textContent='▶ Жалғастыру';
+    document.getElementById('pause-btn').className='btn btn-green btn-sm';
+    toast('⏸ Тоқтатылды','er');
+  } else {
+    isPaused=false; socket.emit('pause_session',{paused:false});
+    document.getElementById('pause-btn').textContent='⏸ Тоқтату';
+    document.getElementById('pause-btn').className='btn btn-amber btn-sm';
+    toast('▶ Жалғасуда','ok');
+  }
+}
+
+function endSession(){socket.emit('end_session');showResultsTeacher()}
+
+function renderCards(){
+  const sorted = Object.entries(studentsCache).sort((a,b) => {
+    if(b[1].correct !== a[1].correct) return b[1].correct - a[1].correct;
+    return a[1].incorrect - b[1].incorrect;
+  });
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('cards-grid').innerHTML = sorted.map(([uid,s],i) => {
+    const pct = s.totalAnswered ? Math.round(s.correct/s.totalAnswered*100) : 0;
+    const col = pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+    const barCol = pct>=70?'#059669':pct>=40?'#d97706':'#dc2626';
+    const f=s.focus||{}, focused=f.focused!==false, sw=f.switches||0, awaySec=Math.round((f.awayMs||0)/1000);
+    const warn=sw>0?`<span class="s-card-warn">🔀${sw}${awaySec>0?'·'+awaySec+'с':''}</span>`:'';
+    return `<div class="s-card">
+      <div class="s-card-pct" style="color:${col}">${pct}%</div>
+      <div class="s-card-top">
+        <span class="s-card-rank">${medals[i]||(i+1)}</span>
+        <div class="s-card-av" style="background:${s.color}18;color:${s.color}">${s.name[0].toUpperCase()}</div>
+        <span class="s-card-name">${esc(s.name)}</span>
+        <span class="s-card-focus ${focused?'on':'off'}"></span>${warn}
+      </div>
+      <div class="s-card-stats">
+        <span class="s-card-stat g">✅ ${s.correct}</span>
+        <span class="s-card-stat r">❌ ${s.incorrect}</span>
+      </div>
+      <div class="s-card-bar"><div class="s-card-bar-fill" style="width:${pct}%;background:${barCol}"></div></div>
+      <div class="s-card-total">📝 ${s.totalAnswered} есеп</div>
+    </div>`;
+  }).join('');
+}
+
+function updateLiveStats(){
+  const all=Object.values(studentsCache);
+  document.getElementById('student-count').textContent=all.length;
+  const tc=all.reduce((s,x)=>s+x.correct,0), tt=all.reduce((s,x)=>s+x.totalAnswered,0);
+  document.getElementById('avg-pct').textContent=tt?Math.round(tc/tt*100):0;
+  const aw=all.filter(s=>s.focus&&s.focus.focused===false).length;
+  const pill=document.getElementById('away-pill');
+  if(aw>0){pill.style.display='';document.getElementById('away-count').textContent=aw}else pill.style.display='none';
+}
+
+function showResultsTeacher(){
+  const students=Object.values(studentsCache).sort((a,b)=>b.correct-a.correct);
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('res-sub').textContent=students.length+' оқушы';
+  document.getElementById('leaderboard').innerHTML=students.map((s,i)=>{
+    const pct=s.totalAnswered?Math.round(s.correct/s.totalAnswered*100):0;
+    const col=pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+    return `<div class="lb-row">
+      <div class="lb-rank">${medals[i]||(i+1)}</div>
+      <div class="lb-av" style="background:${s.color}18;color:${s.color}">${s.name[0].toUpperCase()}</div>
+      <div class="lb-info"><div class="lb-name">${esc(s.name)}</div><div class="lb-detail">✅${s.correct} ❌${s.incorrect} 📝${s.totalAnswered} 📊${pct}%</div></div>
+      <div class="lb-pct" style="color:${col}">${pct}%</div>
+    </div>`;
+  }).join('');
+  showT('s-results-t');
+  spawnConfetti();
+}
+
+function newSession(){socket.emit('remove_room');studentsCache={};selectedSecs.clear();document.querySelectorAll('.sec-btn').forEach(c=>c.classList.remove('selected'));showT('s-setup')}
+
+// ══════════════════════════════════════════════
+//  STUDENT LOGIC
+// ══════════════════════════════════════════════
+let sections=[], stats={correct:0,incorrect:0,streak:0};
+let quiz={selected:null,answered:false,correctIndex:null};
+const graphInstances={};
+
+// Focus tracking
+let focusSwitches=0,awayStart=null,totalAwayMs=0;
+function reportFocus(focused){
+  if(!focused&&!awayStart)awayStart=Date.now();
+  if(focused&&awayStart){totalAwayMs+=Date.now()-awayStart;awayStart=null;}
+  if(!focused)focusSwitches++;
+  socket.emit('focus_change',{focused,switches:focusSwitches,awayMs:totalAwayMs});
+}
+document.addEventListener('visibilitychange',()=>reportFocus(!document.hidden));
+window.addEventListener('blur',()=>reportFocus(false));
+window.addEventListener('focus',()=>reportFocus(true));
+
+function joinRoom(){
+  const name=document.getElementById('sname').value.trim();
+  const codeEl=document.getElementById('scode');
+  const code=(urlCode||codeEl.value.trim()).toUpperCase();
+  const errEl=document.getElementById('join-err');
+  if(!name){errEl.textContent='Атыңызды жазыңыз';errEl.classList.add('on');return}
+  if(code.length<4){errEl.textContent='Бөлме кодын енгізіңіз';errEl.classList.add('on');return}
+  errEl.classList.remove('on');
+  roomCode=code;
+  socket.emit('join_room',{roomCode:code,name});
+}
+
+socket.on('join_error',({message})=>{
+  document.getElementById('join-err').textContent=message;
+  document.getElementById('join-err').classList.add('on');
+});
+
+socket.on('joined',({sections:secs,status})=>{
+  sections=secs;
+  if(status==='active'){startQuiz()}
+  else if(status==='paused'){startQuiz();document.getElementById('pause-overlay').classList.add('on')}
+  else{show('s-wait')}
+});
+
+socket.on('session_started',({sections:secs})=>{sections=secs;startQuiz()});
+socket.on('session_paused',({paused})=>{
+  if(paused)document.getElementById('pause-overlay').classList.add('on');
+  else document.getElementById('pause-overlay').classList.remove('on');
+});
+socket.on('session_ended',()=>{
+  document.getElementById('pause-overlay').classList.remove('on');
+  document.getElementById('res-correct').textContent=stats.correct;
+  document.getElementById('res-wrong').textContent=stats.incorrect;
+  const pct=(stats.correct+stats.incorrect)?Math.round(stats.correct/(stats.correct+stats.incorrect)*100):0;
+  document.getElementById('res-pct').textContent=pct+'%';
+  show('s-results-s');
+  spawnConfetti();
+});
+socket.on('room_closed',()=>{show('s-join')});
+
+function startQuiz(){
+  stats={correct:0,incorrect:0,streak:0};
+  updateStats();
+  show('s-quiz');
+  loadQuestion();
+}
+function updateStats(){
+  document.getElementById('st-total').textContent=stats.correct+stats.incorrect;
+  document.getElementById('st-correct').textContent=stats.correct;
+  document.getElementById('st-wrong').textContent=stats.incorrect;
+  document.getElementById('st-streak').textContent=stats.streak;
+}
+
+// ══════════════════════════════════════════════
+//  GRAPH VIEW CLASS
+// ══════════════════════════════════════════════
+class GraphView{
+  constructor(canvas,container,params){
+    this.canvas=canvas;this.container=container;this.params=params;
+    this.centerX=0;this.centerY=0;this.scale=0.05;
+    this.dpr=window.devicePixelRatio||1;
+    this.isDragging=false;this.lastX=0;this.lastY=0;
+    this.resize();this.setupEvents();this.draw();
+  }
+  f(x){const p=this.params;if(p.mode==='vertex')return p.a*(x-p.m)*(x-p.m)+p.n;else if(p.mode==='standard')return p.a*x*x+p.b*x+p.c_full;else return p.a*(x-(p.m||0))*(x-(p.m||0))+(p.n||0)}
+  getVertex(){const p=this.params;if(p.mode==='standard'){const vx=-p.b/(2*p.a);return{x:vx,y:this.f(vx)}}return{x:p.m||0,y:p.n||0}}
+  resize(){const rect=this.container.getBoundingClientRect();this.width=rect.width;this.height=rect.height;this.canvas.width=this.width*this.dpr;this.canvas.height=this.height*this.dpr;this.canvas.style.width=this.width+'px';this.canvas.style.height=this.height+'px';this.ctx=this.canvas.getContext('2d');this.ctx.scale(this.dpr,this.dpr)}
+  worldToScreen(wx,wy){return{x:this.width/2+(wx-this.centerX)/this.scale,y:this.height/2-(wy-this.centerY)/this.scale}}
+  screenToWorld(sx,sy){return{x:this.centerX+(sx-this.width/2)*this.scale,y:this.centerY-(sy-this.height/2)*this.scale}}
+  zoomIn(){this.scale=Math.max(0.01,this.scale*0.7);this.draw()}
+  zoomOut(){this.scale=Math.min(0.5,this.scale*1.4);this.draw()}
+  reset(){this.centerX=0;this.centerY=0;this.scale=0.05;this.draw()}
+  setupEvents(){
+    const c=this.container;
+    c.addEventListener('mousedown',e=>{if(e.target.classList.contains('graph-btn'))return;this.isDragging=true;this.lastX=e.clientX;this.lastY=e.clientY;e.preventDefault()});
+    c.addEventListener('mousemove',e=>{if(!this.isDragging)return;this.centerX-=(e.clientX-this.lastX)*this.scale;this.centerY+=(e.clientY-this.lastY)*this.scale;this.lastX=e.clientX;this.lastY=e.clientY;this.draw()});
+    c.addEventListener('mouseup',()=>this.isDragging=false);
+    c.addEventListener('mouseleave',()=>this.isDragging=false);
+    c.addEventListener('touchstart',e=>{if(e.target.classList.contains('graph-btn'))return;if(e.touches.length===1){this.isDragging=true;this.lastX=e.touches[0].clientX;this.lastY=e.touches[0].clientY}},{passive:true});
+    c.addEventListener('touchmove',e=>{if(!this.isDragging||e.touches.length!==1)return;this.centerX-=(e.touches[0].clientX-this.lastX)*this.scale;this.centerY+=(e.touches[0].clientY-this.lastY)*this.scale;this.lastX=e.touches[0].clientX;this.lastY=e.touches[0].clientY;this.draw()},{passive:true});
+    c.addEventListener('touchend',()=>this.isDragging=false);
+  }
+  draw(){
+    const ctx=this.ctx,w=this.width,h=this.height;
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+    const halfW=(w/2)*this.scale,halfH=(h/2)*this.scale;
+    const bounds={minX:this.centerX-halfW,maxX:this.centerX+halfW,minY:this.centerY-halfH,maxY:this.centerY+halfH};
+    const worldW=bounds.maxX-bounds.minX;
+    let gridStep=1;if(worldW>20)gridStep=5;if(worldW>50)gridStep=10;if(worldW<5)gridStep=0.5;
+    ctx.strokeStyle='#f1f5f9';ctx.lineWidth=1;
+    const sx=Math.floor(bounds.minX/gridStep)*gridStep,sy=Math.floor(bounds.minY/gridStep)*gridStep;
+    for(let wx=sx;wx<=bounds.maxX;wx+=gridStep){const p=this.worldToScreen(wx,0);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,h);ctx.stroke()}
+    for(let wy=sy;wy<=bounds.maxY;wy+=gridStep){const p=this.worldToScreen(0,wy);ctx.beginPath();ctx.moveTo(0,p.y);ctx.lineTo(w,p.y);ctx.stroke()}
+    ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+    const origin=this.worldToScreen(0,0);
+    if(origin.y>=0&&origin.y<=h){ctx.beginPath();ctx.moveTo(0,origin.y);ctx.lineTo(w,origin.y);ctx.stroke()}
+    if(origin.x>=0&&origin.x<=w){ctx.beginPath();ctx.moveTo(origin.x,0);ctx.lineTo(origin.x,h);ctx.stroke()}
+    ctx.fillStyle='#64748b';ctx.font='500 9px DM Sans, sans-serif';ctx.textAlign='center';
+    for(let wx=sx;wx<=bounds.maxX;wx+=gridStep){if(Math.abs(wx)<0.001)continue;const p=this.worldToScreen(wx,0);if(p.x>12&&p.x<w-12)ctx.fillText(Number.isInteger(wx)?wx.toString():wx.toFixed(1),p.x,Math.min(Math.max(origin.y+13,13),h-3))}
+    ctx.textAlign='left';
+    for(let wy=sy;wy<=bounds.maxY;wy+=gridStep){if(Math.abs(wy)<0.001)continue;const p=this.worldToScreen(0,wy);if(p.y>10&&p.y<h-6)ctx.fillText(Number.isInteger(wy)?wy.toString():wy.toFixed(1),Math.min(Math.max(origin.x+3,3),w-18),p.y+4)}
+    ctx.font='700 10px DM Sans, sans-serif';
+    ctx.fillText('x',w-10,Math.min(Math.max(origin.y-4,12),h-3));
+    ctx.fillText('y',Math.min(Math.max(origin.x+4,4),w-10),10);
+    ctx.beginPath();ctx.strokeStyle='#4338ca';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+    let started=false;
+    for(let px=-10;px<=w+10;px+=2){const world=this.screenToWorld(px,0);const wy=this.f(world.x);const p=this.worldToScreen(world.x,wy);if(p.y>=-50&&p.y<=h+50){if(!started){ctx.moveTo(p.x,p.y);started=true}else ctx.lineTo(p.x,p.y)}}
+    ctx.stroke();
+    const v=this.getVertex();const vs=this.worldToScreen(v.x,v.y);
+    if(vs.x>=-10&&vs.x<=w+10&&vs.y>=-10&&vs.y<=h+10){ctx.beginPath();ctx.arc(vs.x,vs.y,3.5,0,Math.PI*2);ctx.fillStyle='#4338ca';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke()}
+  }
+}
+
+// ══════════════════════════════════════════════
+//  QUESTION GENERATION
+// ══════════════════════════════════════════════
+function formatFunc(params){
+  const p=params;
+  if(p.mode==='standard'){
+    let s='y = ';const a=p.a,b=p.b,c=p.c_full;
+    if(a===1)s+='x^2';else if(a===-1)s+='-x^2';else s+=a+'x^2';
+    if(b>0)s+=' + '+(b===1?'':b)+'x';else if(b<0)s+=' - '+(b===-1?'':Math.abs(b))+'x';
+    if(c>0)s+=' + '+c;else if(c<0)s+=' - '+Math.abs(c);
+    return s;
+  }
+  const a=p.a,m=p.m||0,n=p.n||0;
+  if(m===0&&n===0){if(a===1)return'y = x^2';if(a===-1)return'y = -x^2';return'y = '+a+'x^2'}
+  let s='y = ';
+  if(m===0){if(a===1)s+='x^2';else if(a===-1)s+='-x^2';else s+=a+'x^2';if(n>0)s+=' + '+n;else if(n<0)s+=' - '+Math.abs(n);return s}
+  if(a===1)s+='';else if(a===-1)s+='-';else s+=a;
+  if(m>0)s+='(x - '+m+')^2';else s+='(x + '+Math.abs(m)+')^2';
+  if(n>0)s+=' + '+n;else if(n<0)s+=' - '+Math.abs(n);
+  return s;
+}
+
+function generateForSection(sec){
+  const aVals=[-2,-1,-0.5,0.5,1,2];
+  if(sec==='sec1')return{a:randomChoice(aVals),m:0,n:0,mode:'vertex'};
+  if(sec==='sec2'){const a=randomChoice(aVals);return{a,m:0,n:randomChoice([-4,-3,-2,-1,1,2,3,4]),mode:'vertex'}}
+  if(sec==='sec3'){const a=randomChoice(aVals);return{a,m:randomChoice([-3,-2,-1,1,2,3]),n:0,mode:'vertex'}}
+  if(sec==='sec4'){const a=randomChoice(aVals);return{a,m:randomChoice([-3,-2,-1,1,2,3]),n:randomChoice([-3,-2,-1,1,2,3]),mode:'vertex'}}
+  if(sec==='sec5'){const a=randomChoice([1,-1,2,-2]);const m=randomChoice([-3,-2,-1,1,2,3]);const n=randomChoice([-4,-3,-2,-1,0,1,2,3,4]);return{a,b:-2*a*m,c_full:a*m*m+n,mode:'standard'}}
+}
+
+function generateWrongParams(correct,sec){
+  const wrongs=[],used=new Set();used.add(JSON.stringify(correct));
+  const variations=[];
+  if(correct.mode==='standard'){
+    const a=correct.a,b=correct.b,c=correct.c_full;
+    [{a:-a,b,c_full:c},{a,b:-b,c_full:c},{a,b,c_full:-c},{a:-a,b:-b,c_full:c},{a,b,c_full:c+3},{a,b,c_full:c-3},{a:a*2,b,c_full:c}].forEach(v=>variations.push({...v,mode:'standard'}));
+  } else {
+    const a=correct.a,m=correct.m||0,n=correct.n||0;
+    [{a:-a,m,n},{a,m:-m,n},{a,m,n:-n},{a:-a,m:-m,n},{a,m,n:n+3},{a,m:m+2,n},{a:a*2,m,n}].forEach(v=>variations.push({...v,mode:'vertex'}));
+  }
+  for(const v of variations){const key=JSON.stringify(v);if(!used.has(key)&&wrongs.length<3){used.add(key);wrongs.push(v)}}
+  while(wrongs.length<3){const p=generateForSection(sec);const key=JSON.stringify(p);if(!used.has(key)){used.add(key);wrongs.push(p)}}
+  return wrongs;
+}
+
+function loadQuestion(){
+  Object.keys(graphInstances).forEach(k=>delete graphInstances[k]);
+  quiz={selected:null,answered:false,correctIndex:null};
+  const sec=randomChoice(sections);
+  const correct=generateForSection(sec);
+  const wrongs=generateWrongParams(correct,sec);
+  const options=shuffleArray([{params:correct,correct:true},...wrongs.map(w=>({params:w,correct:false}))]);
+  quiz.correctIndex=options.findIndex(o=>o.correct);
+  document.getElementById('func-display').innerHTML=tex(formatFunc(correct));
+  const grid=document.getElementById('graphs-grid');grid.innerHTML='';
+  const labels=['A','B','C','D'];
+  options.forEach((opt,i)=>{
+    const div=document.createElement('div');div.className='graph-option';div.dataset.index=i;div.dataset.correct=opt.correct;
+    const label=document.createElement('div');label.className='graph-label';label.textContent=labels[i];
+    const container=document.createElement('div');container.className='graph-container';
+    const canvas=document.createElement('canvas');canvas.className='graph-canvas';
+    const controls=document.createElement('div');controls.className='graph-controls';
+    controls.innerHTML='<button class="graph-btn" data-action="zoomout">−</button><button class="graph-btn" data-action="zoomin">+</button><button class="graph-btn" data-action="reset">⟲</button>';
+    container.appendChild(canvas);container.appendChild(controls);div.appendChild(label);div.appendChild(container);grid.appendChild(div);
+    setTimeout(()=>{
+      const g=new GraphView(canvas,container,opt.params);graphInstances[i]=g;
+      controls.addEventListener('click',e=>{const btn=e.target.closest('.graph-btn');if(!btn)return;e.stopPropagation();if(btn.dataset.action==='zoomin')g.zoomIn();else if(btn.dataset.action==='zoomout')g.zoomOut();else if(btn.dataset.action==='reset')g.reset()});
+    },10);
+    div.addEventListener('click',e=>{if(e.target.classList.contains('graph-btn'))return;if(quiz.answered)return;selectGraph(i)});
+  });
+  document.getElementById('check-btn').disabled=true;
+  document.getElementById('check-btn').classList.remove('hidden');
+  document.getElementById('next-btn').classList.add('hidden');
+  document.getElementById('feedback').classList.add('hidden');
+}
+
+function selectGraph(index){
+  if(quiz.answered)return;
+  document.querySelectorAll('.graph-option').forEach(o=>o.classList.remove('selected'));
+  document.querySelector(`.graph-option[data-index="${index}"]`).classList.add('selected');
+  quiz.selected=index;
+  document.getElementById('check-btn').disabled=false;
+}
+
+function checkAnswer(){
+  if(quiz.selected===null)return;
+  quiz.answered=true;
+  const options=document.querySelectorAll('.graph-option');
+  const selectedOpt=options[quiz.selected];
+  const isCorrect=selectedOpt.dataset.correct==='true';
+  options.forEach(opt=>{opt.disabled=true;opt.style.pointerEvents='none';if(opt.dataset.correct==='true')opt.classList.add('correct');else if(opt===selectedOpt)opt.classList.add('incorrect')});
+  const feedback=document.getElementById('feedback');
+  feedback.classList.remove('hidden','correct','incorrect');
+  if(isCorrect){stats.correct++;stats.streak++;feedback.classList.add('correct');feedback.textContent='✓ Дұрыс!'}
+  else{stats.incorrect++;stats.streak=0;feedback.classList.add('incorrect');feedback.textContent='✗ Қате! Дұрыс жауап жасыл түспен.'}
+  updateStats();
+  socket.emit('submit_answer',{correct:isCorrect});
+  document.getElementById('check-btn').classList.add('hidden');
+  document.getElementById('next-btn').classList.remove('hidden');
+}
+
+function nextQuestion(){loadQuestion()}
+
+window.addEventListener('resize',()=>{Object.values(graphInstances).forEach(g=>{if(g&&g.resize){g.resize();g.draw()}})});
+document.addEventListener('keydown',e=>{if(document.getElementById('s-join').classList.contains('active')&&e.key==='Enter')joinRoom()});
+</script>
+</body>
+</html>
