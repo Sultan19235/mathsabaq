@@ -641,31 +641,28 @@ function createRoom(){
     return;
   }
   document.getElementById('setup-err').classList.remove('on');
-  roomCode = randCode();
-  studentsCache = {};
-  socket.emit('create_room', { roomCode, sections: Array.from(selectedSecs) });
+  socket.emit('create_room', { appType: 'graph', config: { sections: Array.from(selectedSecs) } });
 }
 
-socket.on('room_created', ({ roomCode: code }) => {
+socket.on('room_created', ({ code }) => {
   roomCode = code;
-  // QR points to same file with role=student&join=CODE
-  studentJoinUrl = location.origin + location.pathname + '?role=student&join=' + roomCode;
+  studentsCache = {};
+  studentJoinUrl = location.origin + location.pathname.replace('graph.html','') + 'graph.html?role=student&join=' + roomCode;
   document.getElementById('room-code-display').textContent = roomCode;
   document.getElementById('student-url-hint').textContent = 'QR кодты сканерлеп кіріңіз';
   document.getElementById('lobby-secs').textContent = selectedSecs.size + ' бөлім таңдалды';
   document.getElementById('lobby-count').textContent = '0';
   document.getElementById('start-btn').disabled = true;
   document.getElementById('start-btn').textContent = '▶ Бастау (оқушылар күтілуде…)';
-  // Small QR in lobby
   const qrBox = document.getElementById('qr-box'); qrBox.innerHTML = '';
   try{new QRCode(qrBox,{text:studentJoinUrl,width:90,height:90,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
   showT('s-lobby');
 });
 
-socket.on('lobby_update', (students) => {
+socket.on('student_joined', ({ students }) => {
   studentsCache = {};
-  Object.entries(students).forEach(([sid,s])=>{
-    studentsCache[sid] = { name:s.name, color:s.color, correct:0, incorrect:0, totalAnswered:0, focus:{} };
+  Object.values(students).forEach(s => {
+    studentsCache[s.socketId] = { name:s.name, color:'#4338ca', correct:s.correct||0, incorrect:s.wrong||0, totalAnswered:(s.correct||0)+(s.wrong||0), score:s.score||0, focus:{} };
   });
   const entries = Object.values(students);
   document.getElementById('lobby-count').textContent = entries.length;
@@ -673,22 +670,28 @@ socket.on('lobby_update', (students) => {
   document.getElementById('start-btn').textContent = entries.length
     ? `▶ Бастау (${entries.length} оқушы)` : '▶ Бастау (оқушылар күтілуде…)';
   document.getElementById('lobby-list').innerHTML = entries.map(s =>
-    `<div class="s-join"><div class="s-join-av" style="background:${s.color}18;color:${s.color}">${s.name[0].toUpperCase()}</div><div><div class="s-join-name">${esc(s.name)}</div><div class="s-join-sub">✅ Қосылды</div></div></div>`
+    `<div class="s-join"><div class="s-join-av" style="background:#4338ca18;color:#4338ca">${s.name[0].toUpperCase()}</div><div><div class="s-join-name">${esc(s.name)}</div><div class="s-join-sub">✅ Қосылды</div></div></div>`
   ).join('') || '<div class="dots" style="padding:8px 0"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="color:var(--muted);font-size:.78rem;margin-left:6px">Күтілуде…</span></div>';
 });
 
-socket.on('scores_update', (students) => {
-  Object.entries(students).forEach(([sid,s]) => { studentsCache[sid] = s; });
+socket.on('student_left', ({ students }) => {
+  socket.emit('student_joined', { students }); // reuse same render
+});
+
+socket.on('scores_updated', ({ students }) => {
+  Object.values(students).forEach(s => {
+    studentsCache[s.socketId] = { name:s.name, color:'#4338ca', correct:s.correct||0, incorrect:s.wrong||0, totalAnswered:(s.correct||0)+(s.wrong||0), score:s.score||0, focus:{} };
+  });
   renderCards();
   updateLiveStats();
 });
 
-function backToSetup(){socket.emit('remove_room');studentsCache={};showT('s-setup')}
+function backToSetup(){socket.emit('remove_room', { code: roomCode });studentsCache={};showT('s-setup')}
 
 function startSession(){
   if(!Object.keys(studentsCache).length){toast('Оқушылар жоқ!','er');return}
   isPaused = false;
-  socket.emit('start_session');
+  socket.emit('start_quiz', { code: roomCode });
   document.getElementById('live-code').textContent = roomCode;
   document.getElementById('live-meta').textContent = 'Тікелей · ' + Array.from(selectedSecs).map(s=>SEC_NAMES[s]).join(', ');
   document.getElementById('student-count').textContent = Object.keys(studentsCache).length;
@@ -700,19 +703,19 @@ function startSession(){
 
 function pauseSession(){
   if(!isPaused){
-    isPaused=true; socket.emit('pause_session',{paused:true});
+    isPaused=true; socket.emit('pause_quiz', { code: roomCode });
     document.getElementById('pause-btn').textContent='▶ Жалғастыру';
     document.getElementById('pause-btn').className='btn btn-green btn-sm';
     toast('⏸ Тоқтатылды','er');
   } else {
-    isPaused=false; socket.emit('pause_session',{paused:false});
+    isPaused=false; socket.emit('resume_quiz', { code: roomCode });
     document.getElementById('pause-btn').textContent='⏸ Тоқтату';
     document.getElementById('pause-btn').className='btn btn-amber btn-sm';
     toast('▶ Жалғасуда','ok');
   }
 }
 
-function endSession(){socket.emit('end_session');showResultsTeacher()}
+function endSession(){socket.emit('end_quiz', { code: roomCode });showResultsTeacher()}
 
 function renderCards(){
   const sorted = Object.entries(studentsCache).sort((a,b) => {
@@ -772,7 +775,7 @@ function showResultsTeacher(){
   spawnConfetti();
 }
 
-function newSession(){socket.emit('remove_room');studentsCache={};selectedSecs.clear();document.querySelectorAll('.sec-btn').forEach(c=>c.classList.remove('selected'));showT('s-setup')}
+function newSession(){socket.emit('remove_room', { code: roomCode });studentsCache={};selectedSecs.clear();document.querySelectorAll('.sec-btn').forEach(c=>c.classList.remove('selected'));showT('s-setup')}
 
 // ══════════════════════════════════════════════
 //  STUDENT LOGIC
@@ -787,7 +790,7 @@ function reportFocus(focused){
   if(!focused&&!awayStart)awayStart=Date.now();
   if(focused&&awayStart){totalAwayMs+=Date.now()-awayStart;awayStart=null;}
   if(!focused)focusSwitches++;
-  socket.emit('focus_change',{focused,switches:focusSwitches,awayMs:totalAwayMs});
+  if(roomCode) socket.emit('tab_switch',{code:roomCode});
 }
 document.addEventListener('visibilitychange',()=>reportFocus(!document.hidden));
 window.addEventListener('blur',()=>reportFocus(false));
@@ -802,7 +805,7 @@ function joinRoom(){
   if(code.length<4){errEl.textContent='Бөлме кодын енгізіңіз';errEl.classList.add('on');return}
   errEl.classList.remove('on');
   roomCode=code;
-  socket.emit('join_room',{roomCode:code,name});
+  socket.emit('join_room',{code, name});
 }
 
 socket.on('join_error',({message})=>{
@@ -810,19 +813,20 @@ socket.on('join_error',({message})=>{
   document.getElementById('join-err').classList.add('on');
 });
 
-socket.on('joined',({sections:secs,status})=>{
-  sections=secs;
+socket.on('joined',({status, config})=>{
+  if(config && config.sections) sections=config.sections;
   if(status==='active'){startQuiz()}
   else if(status==='paused'){startQuiz();document.getElementById('pause-overlay').classList.add('on')}
   else{show('s-wait')}
 });
 
-socket.on('session_started',({sections:secs})=>{sections=secs;startQuiz()});
-socket.on('session_paused',({paused})=>{
-  if(paused)document.getElementById('pause-overlay').classList.add('on');
-  else document.getElementById('pause-overlay').classList.remove('on');
+socket.on('quiz_started',()=>{
+  if(!sections || !sections.length) sections=['sec1','sec2','sec3','sec4','sec5'];
+  startQuiz();
 });
-socket.on('session_ended',()=>{
+socket.on('quiz_paused',()=>document.getElementById('pause-overlay').classList.add('on'));
+socket.on('quiz_resumed',()=>document.getElementById('pause-overlay').classList.remove('on'));
+socket.on('quiz_ended',()=>{
   document.getElementById('pause-overlay').classList.remove('on');
   document.getElementById('res-correct').textContent=stats.correct;
   document.getElementById('res-wrong').textContent=stats.incorrect;
@@ -831,7 +835,7 @@ socket.on('session_ended',()=>{
   show('s-results-s');
   spawnConfetti();
 });
-socket.on('room_closed',()=>{show('s-join')});
+socket.on('teacher_disconnected',()=>{show('s-join')});
 
 function startQuiz(){
   stats={correct:0,incorrect:0,streak:0};
@@ -1003,7 +1007,7 @@ function checkAnswer(){
   if(isCorrect){stats.correct++;stats.streak++;feedback.classList.add('correct');feedback.textContent='✓ Дұрыс!'}
   else{stats.incorrect++;stats.streak=0;feedback.classList.add('incorrect');feedback.textContent='✗ Қате! Дұрыс жауап жасыл түспен.'}
   updateStats();
-  socket.emit('submit_answer',{correct:isCorrect});
+  socket.emit('submit_answer',{code:roomCode,correct:isCorrect});
   document.getElementById('check-btn').classList.add('hidden');
   document.getElementById('next-btn').classList.remove('hidden');
 }
