@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathSabaq — Интерактивті қолданбалар</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3e;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --teacher-color: #6c63ff;
+    --student-color: #43e97b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+    animation: drift 20s ease-in-out infinite;
+  }
+  .blob-1 { width: 500px; height: 500px; background: var(--accent); top: -150px; left: -100px; animation-delay: 0s; }
+  .blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -100px; animation-delay: -7s; }
+  .blob-3 { width: 300px; height: 300px; background: var(--accent3); top: 50%; left: 50%; animation-delay: -14s; }
+
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+  }
+
+  /* Header */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 48px 40px 0;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: white;
+    box-shadow: 0 0 30px rgba(108,99,255,0.4);
+  }
+
+  .logo-text {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    background: linear-gradient(135deg, #fff 0%, var(--muted) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .lang-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .lang-btn {
+    padding: 8px 18px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Onest', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .lang-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    z-index: 10;
+    padding: 60px 40px 40px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .hero-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .hero-title span {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    color: var(--muted);
+    font-size: 16px;
+    font-weight: 300;
+    max-width: 500px;
+    line-height: 1.6;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    position: relative;
+    z-index: 10;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 40px 40px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Search */
+  .search-bar {
+    position: relative;
+    z-index: 10;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 40px 40px;
+  }
+
+  .search-input {
+    width: 100%;
+    max-width: 480px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 20px 14px 48px;
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 18px;
+    pointer-events: none;
+  }
+
+  /* Apps grid */
+  .apps-section {
+    position: relative;
+    z-index: 10;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 40px 80px;
+  }
+
+  .section-label {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  /* App Card */
+  .app-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    animation: fadeUp 0.5s ease backwards;
+  }
+
+  .app-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 20px 60px rgba(108,99,255,0.15);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    padding: 24px 24px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .app-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+    text-transform: capitalize;
+  }
+
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .card-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 24px;
+  }
+
+  .card-actions {
+    padding: 16px 24px 20px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-link {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-family: 'Onest', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-teacher {
+    background: rgba(108,99,255,0.15);
+    color: #a09cff;
+    border: 1px solid rgba(108,99,255,0.3);
+  }
+  .btn-teacher:hover {
+    background: rgba(108,99,255,0.3);
+    color: white;
+  }
+
+  .btn-student {
+    background: rgba(67,233,123,0.12);
+    color: #43e97b;
+    border: 1px solid rgba(67,233,123,0.25);
+  }
+  .btn-student:hover {
+    background: rgba(67,233,123,0.25);
+    color: white;
+  }
+
+  /* Upload button */
+  .upload-fab {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+    text-decoration: none;
+    padding: 16px 24px;
+    border-radius: 50px;
+    font-family: 'Onest', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 32px rgba(108,99,255,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .upload-fab:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 12px 40px rgba(108,99,255,0.55);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+    grid-column: 1/-1;
+  }
+  .empty-state .big-icon { font-size: 60px; margin-bottom: 16px; }
+  .empty-state p { font-size: 18px; }
+
+  /* App icon colors */
+  .icon-purple { background: rgba(108,99,255,0.2); }
+  .icon-pink   { background: rgba(255,101,132,0.2); }
+  .icon-green  { background: rgba(67,233,123,0.2); }
+  .icon-orange { background: rgba(255,167,38,0.2); }
+  .icon-cyan   { background: rgba(0,210,255,0.2); }
+  .icon-red    { background: rgba(255,82,82,0.2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    header, .hero, .stats-bar, .search-bar, .apps-section { padding-left: 20px; padding-right: 20px; }
+    .apps-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 28px; }
+    .upload-fab span { display: none; }
+    .upload-fab { padding: 16px; border-radius: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <div class="logo-text">MathSabaq</div>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('kk')" id="btn-kk">ҚАЗ</button>
+      <button class="lang-btn" onclick="setLang('ru')" id="btn-ru">РУС</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1 class="hero-title">
+    <span data-kk="Интерактивті" data-ru="Интерактивные">Интерактивті</span><br>
+    <span data-kk="қолданбалар" data-ru="приложения"></span>
+  </h1>
+  <p class="hero-sub" data-kk="Оқушылар мен мұғалімдерге арналған математикалық тапсырмалар жиынтығы." data-ru="Набор математических приложений для учеников и учителей.">
+    Оқушылар мен мұғалімдерге арналған математикалық тапсырмалар жиынтығы.
+  </p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-chip">
+    <div class="stat-dot" style="background: var(--accent3);"></div>
+    <span id="stats-apps">0</span>
+    <span data-kk="қолданба" data-ru="приложений">қолданба</span>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-dot" style="background: var(--accent);"></div>
+    <span data-kk="Нақты уақыт · Socket.io" data-ru="Реальное время · Socket.io">Нақты уақыт · Socket.io</span>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-dot" style="background: var(--accent2);"></div>
+    mathsabaq.online
+  </div>
+</div>
+
+<div class="search-bar" style="position:relative">
+  <span class="search-icon">🔍</span>
+  <input class="search-input" type="text" id="search"
+    placeholder="Қолданба іздеу... / Поиск..."
+    oninput="filterApps(this.value)">
+</div>
+
+<div class="apps-section">
+  <div class="section-label" data-kk="БАРЛЫҚ ҚОЛДАНБАЛАР" data-ru="ВСЕ ПРИЛОЖЕНИЯ">БАРЛЫҚ ҚОЛДАНБАЛАР</div>
+  <div class="apps-grid" id="apps-grid">
+    <div class="empty-state">
+      <div class="big-icon">⏳</div>
+      <p data-kk="Жүктелуде..." data-ru="Загрузка...">Жүктелуде...</p>
+    </div>
+  </div>
+</div>
+
+<a href="/upload" class="upload-fab">
+  <span style="font-size:18px">＋</span>
+  <span data-kk="Жаңа қолданба жүктеу" data-ru="Загрузить приложение">Жаңа қолданба жүктеу</span>
+</a>
+
+<script>
+// ─── Language ───────────────────────────────────────────────
+let currentLang = 'kk';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-kk]').forEach(el => {
+    el.textContent = el.dataset[lang] || el.dataset.kk;
+  });
+  document.getElementById('btn-kk').classList.toggle('active', lang === 'kk');
+  document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+}
+
+// ─── App icons by keyword ────────────────────────────────────
+const ICONS = [
+  { keys: ['graph','graphy','quad','функц','parab'], icon: '📈', cls: 'icon-purple' },
+  { keys: ['decimal','ондық','бөлш'], icon: '🔢', cls: 'icon-cyan' },
+  { keys: ['geo','геом','circle','triangle'], icon: '📐', cls: 'icon-pink' },
+  { keys: ['algebra','алгебр','equation','теңд'], icon: '🧮', cls: 'icon-orange' },
+  { keys: ['inequality','теңсізд'], icon: '⚖️', cls: 'icon-green' },
+  { keys: ['quiz','test','тест'], icon: '🏆', cls: 'icon-red' },
+];
+
+function getIconFor(name) {
+  const low = name.toLowerCase();
+  for (const {keys, icon, cls} of ICONS) {
+    if (keys.some(k => low.includes(k))) return {icon, cls};
+  }
+  return { icon: '📚', cls: 'icon-purple' };
+}
+
+// ─── Pretty name from filename ───────────────────────────────
+function prettyName(slug) {
+  return slug
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Render cards ────────────────────────────────────────────
+let allApps = [];
+
+function renderApps(apps) {
+  const grid = document.getElementById('apps-grid');
+  if (!apps.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="big-icon">📭</div>
+        <p data-kk="Қолданба табылмады" data-ru="Приложения не найдены">
+          ${currentLang === 'ru' ? 'Приложения не найдены' : 'Қолданба табылмады'}
+        </p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = apps.map((app, i) => {
+    const {icon, cls} = getIconFor(app.slug);
+    const delay = (i * 60) + 'ms';
+    const teacherLabel = currentLang === 'ru' ? 'Мұғалім' : 'Мұғалім';
+    const studentLabel = currentLang === 'ru' ? 'Оқушы' : 'Оқушы';
+    const subLabel = currentLang === 'ru' ? 'Интерактивное приложение' : 'Интерактивті қолданба';
+
+    return `
+    <div class="app-card" style="animation-delay:${delay}">
+      <div class="card-header">
+        <div class="app-icon ${cls}">${icon}</div>
+        <div>
+          <div class="card-title">${prettyName(app.slug)}</div>
+          <div class="card-subtitle">${subLabel}</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-actions">
+        ${app.teacher ? `<a class="btn-link btn-teacher" href="/${app.slug}-teacher.html">
+          👩‍🏫 ${teacherLabel}
+        </a>` : ''}
+        ${app.student ? `<a class="btn-link btn-student" href="/${app.slug}-student.html">
+          🧑‍🎓 ${studentLabel}
+        </a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterApps(query) {
+  const q = query.toLowerCase().trim();
+  const filtered = q ? allApps.filter(a => a.slug.includes(q)) : allApps;
+  renderApps(filtered);
+}
+
+// ─── Fetch app list from server ──────────────────────────────
+async function loadApps() {
+  try {
+    const res = await fetch('/api/apps');
+    const data = await res.json();
+    allApps = data.apps || [];
+    document.getElementById('stats-apps').textContent = allApps.length;
+    renderApps(allApps);
+  } catch(e) {
+    // Fallback: scan known pattern directly
+    // In case API not yet set up, show demo
+    allApps = [
+      { slug: 'graph', teacher: true, student: true },
+      { slug: 'decimal', teacher: true, student: true },
+    ];
+    document.getElementById('stats-apps').textContent = allApps.length;
+    renderApps(allApps);
+  }
+}
+
+loadApps();
+</script>
+</body>
+</html>
