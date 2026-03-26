@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathSabaq — Upload</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3e;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 { width: 500px; height: 500px; background: var(--accent); top: -200px; right: -100px; }
+  .blob-2 { width: 400px; height: 400px; background: var(--accent3); bottom: -100px; left: -100px; }
+
+  /* ── Login Screen ─────────────────────────────── */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+  }
+  .login-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 0 40px rgba(108,99,255,0.4);
+  }
+  .login-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .login-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  .login-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    font-size: 16px;
+    outline: none;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    color: white;
+    font-family: 'Onest', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .login-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .login-error {
+    color: #ff6584;
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* ── Main Upload UI ───────────────────────────── */
+  #main-ui { display: none; flex: 1; flex-direction: column; }
+
+  nav {
+    position: relative;
+    z-index: 10;
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 900; font-size: 16px; color: white;
+  }
+  .logo-text {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700; font-size: 18px; color: var(--text);
+  }
+  .back-btn {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--muted); text-decoration: none;
+    font-size: 14px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--text); }
+
+  .main-content {
+    position: relative;
+    z-index: 10;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 40px 80px;
+    flex: 1;
+  }
+
+  .page-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 8px;
+  }
+  .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 24px;
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: var(--surface);
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(108,99,255,0.06);
+    box-shadow: 0 0 0 4px rgba(108,99,255,0.1);
+  }
+  .drop-zone.drag-over { transform: scale(1.01); }
+  .drop-icon { font-size: 52px; margin-bottom: 16px; }
+  .drop-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .drop-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .drop-badge {
+    display: inline-block;
+    background: rgba(108,99,255,0.15);
+    border: 1px solid rgba(108,99,255,0.3);
+    color: #a09cff;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  #file-input { display: none; }
+
+  /* File Queue */
+  .queue-section { margin-bottom: 32px; }
+  .queue-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 16px;
+  }
+  .file-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .file-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  .file-type-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .badge-teacher { background: rgba(108,99,255,0.2); color: #a09cff; }
+  .badge-student { background: rgba(67,233,123,0.15); color: #43e97b; }
+  .badge-other   { background: rgba(255,167,38,0.15); color: #ffb74d; }
+
+  .file-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .file-size { font-size: 12px; color: var(--muted); margin-right: 8px; }
+
+  .file-status { font-size: 18px; }
+
+  .remove-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 18px; padding: 4px;
+    transition: color 0.2s;
+    display: flex; align-items: center;
+  }
+  .remove-btn:hover { color: var(--accent2); }
+
+  /* Progress */
+  .progress-bar-outer {
+    width: 100%; height: 4px;
+    background: var(--border); border-radius: 2px;
+    overflow: hidden; margin-top: 8px;
+    display: none;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* Upload button */
+  .upload-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    color: white;
+    font-family: 'Onest', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(108,99,255,0.3);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .upload-btn:hover:not(:disabled) {
+    opacity: 0.92; transform: translateY(-2px);
+    box-shadow: 0 14px 40px rgba(108,99,255,0.45);
+  }
+  .upload-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Result messages */
+  .result-box {
+    margin-top: 24px;
+    border-radius: 14px;
+    padding: 20px 24px;
+    font-size: 14px;
+    line-height: 1.7;
+    display: none;
+  }
+  .result-success { background: rgba(67,233,123,0.12); border: 1px solid rgba(67,233,123,0.3); color: #43e97b; }
+  .result-error   { background: rgba(255,101,132,0.12); border: 1px solid rgba(255,101,132,0.3); color: #ff6584; }
+
+  /* Naming hint */
+  .hint-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .hint-box strong { color: var(--text); }
+  .hint-code {
+    display: inline-block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: monospace;
+    color: #a09cff;
+    font-size: 13px;
+  }
+
+  @media (max-width: 600px) {
+    nav, .main-content { padding-left: 20px; padding-right: 20px; }
+    .login-card { padding: 32px 24px; }
+    .drop-zone { padding: 40px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">Кіру / Вход</div>
+    <div class="login-sub">Файлдарды жүктеу үшін құпия сөзді енгізіңіз</div>
+    <input class="login-input" type="password" id="password-input"
+      placeholder="••••••••"
+      onkeydown="if(event.key==='Enter') checkPass()">
+    <button class="login-btn" onclick="checkPass()">Кіру →</button>
+    <div class="login-error" id="login-error">Қате құпия сөз / Неверный пароль</div>
+  </div>
+</div>
+
+<!-- Main UI -->
+<div id="main-ui">
+  <nav>
+    <a class="logo" href="/">
+      <div class="logo-icon">M</div>
+      <div class="logo-text">MathSabaq</div>
+    </a>
+    <a class="back-btn" href="/">← Басты бет / Главная</a>
+  </nav>
+
+  <div class="main-content">
+    <h1 class="page-title">Файл жүктеу</h1>
+    <p class="page-sub">Жаңа HTML қолданбасын серверге жүктеңіз — басты бетте автоматты түрде пайда болады.</p>
+
+    <div class="hint-box">
+      <strong>📋 Атау ережесі / Правило именования:</strong><br>
+      Файлдар <span class="hint-code">appname-teacher.html</span> және <span class="hint-code">appname-student.html</span> форматында болуы керек.<br>
+      Мысалы: <span class="hint-code">algebra-teacher.html</span>, <span class="hint-code">algebra-student.html</span>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="drop-zone"
+      onclick="document.getElementById('file-input').click()"
+      ondragover="handleDragOver(event)"
+      ondragleave="handleDragLeave(event)"
+      ondrop="handleDrop(event)">
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">HTML файлдарын осында апарыңыз</div>
+      <div class="drop-sub">немесе таңдау үшін басыңыз · или нажмите для выбора</div>
+      <span class="drop-badge">HTML ONLY</span>
+    </div>
+    <input type="file" id="file-input" accept=".html" multiple onchange="handleFiles(this.files)">
+
+    <!-- File Queue -->
+    <div class="queue-section" id="queue-section" style="display:none">
+      <div class="queue-title">ЖҮКТЕЛЕТІН ФАЙЛДАР / ФАЙЛЫ ДЛЯ ЗАГРУЗКИ</div>
+      <div class="file-list" id="file-list"></div>
+
+      <div class="progress-bar-outer" id="progress-outer">
+        <div class="progress-bar-inner" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <button class="upload-btn" id="upload-btn" disabled onclick="uploadFiles()">
+      <span>⬆</span>
+      <span id="upload-btn-text">Серверге жүктеу / Загрузить на сервер</span>
+    </button>
+
+    <div class="result-box result-success" id="result-success"></div>
+    <div class="result-box result-error" id="result-error"></div>
+  </div>
+</div>
+
+<script>
+// ─── Password ────────────────────────────────────────────────
+// Change this password in the server — this is just a frontend check
+// Server-side validation is in server.js /api/upload endpoint
+const UPLOAD_PASSWORD = 'mathsabaq2024'; // Change this!
+
+function checkPass() {
+  const val = document.getElementById('password-input').value;
+  if (val === UPLOAD_PASSWORD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-ui').style.display = 'flex';
+  } else {
+    const err = document.getElementById('login-error');
+    err.style.display = 'block';
+    document.getElementById('password-input').value = '';
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+
+// ─── File handling ───────────────────────────────────────────
+let fileQueue = [];
+
+function getBadge(name) {
+  if (name.includes('-teacher')) return { cls: 'badge-teacher', label: 'TEACHER' };
+  if (name.includes('-student')) return { cls: 'badge-student', label: 'STUDENT' };
+  return { cls: 'badge-other', label: 'HTML' };
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function handleFiles(files) {
+  const htmlFiles = Array.from(files).filter(f => f.name.endsWith('.html'));
+  htmlFiles.forEach(f => {
+    if (!fileQueue.find(q => q.name === f.name)) {
+      fileQueue.push({ file: f, name: f.name, status: 'pending' });
+    }
+  });
+  renderQueue();
+}
+
+function renderQueue() {
+  const section = document.getElementById('queue-section');
+  const list = document.getElementById('file-list');
+  const btn = document.getElementById('upload-btn');
+
+  if (!fileQueue.length) {
+    section.style.display = 'none';
+    btn.disabled = true;
+    return;
+  }
+
+  section.style.display = 'block';
+  btn.disabled = fileQueue.every(f => f.status === 'done');
+
+  list.innerHTML = fileQueue.map((item, i) => {
+    const {cls, label} = getBadge(item.name);
+    const statusIcon = item.status === 'done' ? '✅' :
+                       item.status === 'error' ? '❌' : '⏳';
+    return `
+    <div class="file-item" id="file-item-${i}">
+      <span class="file-type-badge ${cls}">${label}</span>
+      <span class="file-name">${item.name}</span>
+      <span class="file-size">${formatSize(item.file.size)}</span>
+      <span class="file-status">${statusIcon}</span>
+      ${item.status === 'pending' ? `<button class="remove-btn" onclick="removeFile(${i})">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function removeFile(index) {
+  fileQueue.splice(index, 1);
+  renderQueue();
+}
+
+// ─── Drag & drop ─────────────────────────────────────────────
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function handleDragLeave() {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+}
+
+// ─── Upload ───────────────────────────────────────────────────
+async function uploadFiles() {
+  const pending = fileQueue.filter(f => f.status === 'pending');
+  if (!pending.length) return;
+
+  const btn = document.getElementById('upload-btn');
+  const progressOuter = document.getElementById('progress-outer');
+  const progressBar = document.getElementById('progress-bar');
+  const btnText = document.getElementById('upload-btn-text');
+
+  btn.disabled = true;
+  btnText.textContent = 'Жүктелуде... / Загрузка...';
+  progressOuter.style.display = 'block';
+
+  let uploaded = 0;
+  const errors = [];
+  const successes = [];
+
+  for (let i = 0; i < fileQueue.length; i++) {
+    const item = fileQueue[i];
+    if (item.status !== 'pending') continue;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', item.file);
+      formData.append('password', UPLOAD_PASSWORD);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fileQueue[i].status = 'done';
+        successes.push(item.name);
+      } else {
+        fileQueue[i].status = 'error';
+        errors.push(item.name + ': ' + (data.error || 'Unknown error'));
+      }
+    } catch(e) {
+      fileQueue[i].status = 'error';
+      errors.push(item.name + ': Network error');
+    }
+
+    uploaded++;
+    progressBar.style.width = ((uploaded / pending.length) * 100) + '%';
+    renderQueue();
+  }
+
+  btnText.textContent = 'Серверге жүктеу / Загрузить на сервер';
+
+  if (successes.length) {
+    const box = document.getElementById('result-success');
+    box.style.display = 'block';
+    box.innerHTML = `✅ <strong>Сәтті жүктелді / Успешно загружено:</strong><br>` +
+      successes.map(s => `• ${s}`).join('<br>') +
+      `<br><br><a href="/" style="color: #43e97b; font-weight:600;">→ Басты бетке өту / Перейти на главную</a>`;
+  }
+  if (errors.length) {
+    const box = document.getElementById('result-error');
+    box.style.display = 'block';
+    box.innerHTML = `❌ <strong>Қате / Ошибка:</strong><br>` + errors.map(s => `• ${s}`).join('<br>');
+  }
+
+  setTimeout(() => {
+    progressOuter.style.display = 'none';
+    progressBar.style.width = '0%';
+  }, 2000);
+}
+</script>
+</body>
+</html>
