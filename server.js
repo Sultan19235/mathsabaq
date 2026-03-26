@@ -13,6 +13,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const APPS_DIR  = path.join(PUBLIC_DIR, 'apps');
 const UPLOAD_PASSWORD = 'mathsabaq2024'; // ← Change this! Same as in upload.html
 
 // ─── Static files ─────────────────────────────────────────────
@@ -20,29 +21,29 @@ app.use(express.static(PUBLIC_DIR));
 app.use(express.json());
 
 // ─── API: List all apps ───────────────────────────────────────
-// Scans public/ for *-teacher.html and *-student.html and groups them
+// Scans public/apps/ subfolders for teacher.html and student.html
+// Structure: public/apps/SLUG/teacher.html + student.html
 app.get('/api/apps', (req, res) => {
   try {
-    const files = fs.readdirSync(PUBLIC_DIR).filter(f => f.endsWith('.html'));
-    const appMap = {};
+    // Create apps dir if it doesn't exist yet
+    if (!fs.existsSync(APPS_DIR)) fs.mkdirSync(APPS_DIR, { recursive: true });
 
-    files.forEach(file => {
-      const teacherMatch = file.match(/^(.+)-teacher\.html$/);
-      const studentMatch = file.match(/^(.+)-student\.html$/);
+    const folders = fs.readdirSync(APPS_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
 
-      if (teacherMatch) {
-        const slug = teacherMatch[1];
-        if (!appMap[slug]) appMap[slug] = { slug, teacher: false, student: false };
-        appMap[slug].teacher = true;
-      }
-      if (studentMatch) {
-        const slug = studentMatch[1];
-        if (!appMap[slug]) appMap[slug] = { slug, teacher: false, student: false };
-        appMap[slug].student = true;
-      }
-    });
+    const apps = folders.map(slug => {
+      const dir = path.join(APPS_DIR, slug);
+      const files = fs.readdirSync(dir);
+      return {
+        slug,
+        teacher: files.includes('teacher.html'),
+        student:  files.includes('student.html'),
+        teacherUrl: `/apps/${slug}/teacher.html`,
+        studentUrl:  `/apps/${slug}/student.html`,
+      };
+    }).sort((a, b) => a.slug.localeCompare(b.slug));
 
-    const apps = Object.values(appMap).sort((a, b) => a.slug.localeCompare(b.slug));
     res.json({ apps, total: apps.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
