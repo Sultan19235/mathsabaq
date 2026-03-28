@@ -204,7 +204,13 @@ body{overflow-x:hidden}
 <script>
 // ── Config ──────────────────────────────────────────────
 const SERVER_URL = 'https://mathsabaq.online';
-const socket = io(SERVER_URL);
+const socket = io(SERVER_URL, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  timeout: 10000
+});
 const tex = s => katex.renderToString(s, { throwOnError: false });
 
 // ── State ────────────────────────────────────────────────
@@ -248,18 +254,46 @@ function joinRoom(){
   if(!name){errEl.textContent='Атыңызды жазыңыз';errEl.classList.add('on');return}
   if(code.length < 4){errEl.textContent='Бөлме кодын енгізіңіз';errEl.classList.add('on');return}
   errEl.classList.remove('on');
+
+  // Check connection
+  if(!socket.connected){
+    errEl.textContent='Серверге қосылу жоқ. Интернетті тексеріңіз.';
+    errEl.classList.add('on');
+    socket.connect();
+    return;
+  }
+
+  // Show loading
+  const btn = document.querySelector('#s-join .btn-primary');
+  btn.disabled = true;
+  btn.textContent = '⏳ Қосылуда...';
+
+  // Timeout
+  window._joinTimeout = setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '🚀 Кіру';
+    errEl.textContent = 'Сервер жауап бермеді. Қайта байқап көріңіз.';
+    errEl.classList.add('on');
+  }, 8000);
+
   myName = name;
   roomCode = code;
   socket.emit('join_room', { code, name });
 }
 
 socket.on('join_error', ({ message }) => {
+  if(window._joinTimeout) clearTimeout(window._joinTimeout);
+  const btn = document.querySelector('#s-join .btn-primary');
+  if(btn){ btn.disabled = false; btn.textContent = '🚀 Кіру'; }
   const errEl = document.getElementById('join-err');
   errEl.textContent = message;
   errEl.classList.add('on');
 });
 
 socket.on('joined', ({ status, config }) => {
+  if(window._joinTimeout) clearTimeout(window._joinTimeout);
+  const btn = document.querySelector('#s-join .btn-primary');
+  if(btn){ btn.disabled = false; btn.textContent = '🚀 Кіру'; }
   if(config?.sections) sections = config.sections;
   document.getElementById('wait-name').textContent = myName;
   if(status === 'active'){
@@ -270,6 +304,25 @@ socket.on('joined', ({ status, config }) => {
   } else {
     show('s-wait');
   }
+});
+
+// Connection status for student
+socket.on('connect', () => {
+  console.log('✅ Student connected:', socket.id);
+  document.getElementById('join-err').classList.remove('on');
+});
+
+socket.on('connect_error', (err) => {
+  console.error('❌ Student connect error:', err.message);
+  const errEl = document.getElementById('join-err');
+  errEl.textContent = 'Серверге қосылу мүмкін болмады. Интернетті тексеріңіз.';
+  errEl.classList.add('on');
+  const btn = document.querySelector('#s-join .btn-primary');
+  if(btn){ btn.disabled = false; btn.textContent = '🚀 Кіру'; }
+});
+
+socket.on('disconnect', (reason) => {
+  console.warn('⚠ Student disconnected:', reason);
 });
 
 socket.on('quiz_started', ({ config }) => {

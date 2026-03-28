@@ -322,7 +322,13 @@ const SEC_NAMES = {
 };
 
 // ── State ────────────────────────────────────────────────
-const socket = io(SERVER_URL);
+const socket = io(SERVER_URL, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  timeout: 10000
+});
 let roomCode = '', selectedSecs = new Set(), isPaused = false;
 let students = {}; // socketId → { name, score, correct, wrong, tabSwitches, focused }
 
@@ -377,6 +383,32 @@ function createRoom(){
     return;
   }
   document.getElementById('setup-err').classList.remove('on');
+
+  // Check socket connection first
+  if(!socket.connected){
+    document.getElementById('setup-err').textContent='Серверге қосылу жоқ. Интернетті тексеріңіз немесе бетті жаңартыңыз.';
+    document.getElementById('setup-err').classList.add('on');
+    socket.connect(); // try reconnecting
+    return;
+  }
+
+  // Show loading state on button
+  const btn = document.querySelector('#s-setup .btn-green');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Бөлме құрылуда...';
+
+  // Timeout — if no response in 8s, show error
+  const timeout = setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = origText;
+    document.getElementById('setup-err').textContent='Сервер жауап бермеді. Қайта байқап көріңіз.';
+    document.getElementById('setup-err').classList.add('on');
+  }, 8000);
+
+  // Store timeout so we can clear it on success
+  window._createRoomTimeout = timeout;
+
   socket.emit('create_room', {
     appType: 'graph',
     config: { sections: Array.from(selectedSecs) }
@@ -384,6 +416,12 @@ function createRoom(){
 }
 
 socket.on('room_created', ({ code }) => {
+  // Clear the loading timeout
+  if(window._createRoomTimeout) clearTimeout(window._createRoomTimeout);
+  // Reset create button
+  const btn = document.querySelector('#s-setup .btn-green');
+  if(btn){ btn.disabled = false; btn.textContent = '🚀 Бөлме құру'; }
+
   roomCode = code;
   students = {};
   // Show code
@@ -396,6 +434,47 @@ socket.on('room_created', ({ code }) => {
   try{new QRCode(qrBox,{text:url,width:90,height:90,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
   updateLobby();
   show('s-lobby');
+});
+
+// ── Connection status events ─────────────────────────────
+socket.on('connect', () => {
+  console.log('✅ Socket connected:', socket.id);
+  document.getElementById('setup-err').classList.remove('on');
+});
+
+socket.on('connect_error', (err) => {
+  console.error('❌ Socket connect error:', err.message);
+  document.getElementById('setup-err').textContent = 'Серверге қосылу мүмкін болмады: ' + err.message;
+  document.getElementById('setup-err').classList.add('on');
+  // Reset create button if it was loading
+  const btn = document.querySelector('#s-setup .btn-green');
+  if(btn){ btn.disabled = false; btn.textContent = '🚀 Бөлме құру'; }
+});
+
+socket.on('disconnect', (reason) => {
+  console.warn('⚠ Socket disconnected:', reason);
+  if(document.getElementById('s-setup').classList.contains('active')){
+    document.getElementById('setup-err').textContent = 'Сервермен байланыс үзілді. Қайта қосылуда...';
+    document.getElementById('setup-err').classList.add('on');
+  }
+  if(document.getElementById('s-live').classList.contains('active')){
+    toast('⚠ Байланыс үзілді, қайта қосылуда...', 'er');
+  }
+});
+
+socket.on('reconnect', () => {
+  console.log('✅ Socket reconnected');
+  toast('✅ Қайта қосылды!', 'ok');
+  document.getElementById('setup-err').classList.remove('on');
+});
+
+// Handle generic errors from server
+socket.on('error', ({ message }) => {
+  document.getElementById('setup-err').textContent = message || 'Қате орын алды';
+  document.getElementById('setup-err').classList.add('on');
+  const btn = document.querySelector('#s-setup .btn-green');
+  if(btn){ btn.disabled = false; btn.textContent = '🚀 Бөлме құру'; }
+  if(window._createRoomTimeout) clearTimeout(window._createRoomTimeout);
 });
 
 // ── Lobby updates ────────────────────────────────────────
