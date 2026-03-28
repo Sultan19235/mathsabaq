@@ -474,6 +474,7 @@ function genForSec(sec){
   if(sec==='sec3')return{a:randomChoice(aV),m:randomChoice([-3,-2,-1,1,2,3]),n:0,mode:'vertex'};
   if(sec==='sec4')return{a:randomChoice(aV),m:randomChoice([-3,-2,-1,1,2,3]),n:randomChoice([-3,-2,-1,1,2,3]),mode:'vertex'};
   if(sec==='sec5'){const a=randomChoice([1,-1,2,-2]),m=randomChoice([-3,-2,-1,1,2,3]),n=randomChoice([-4,-3,-2,-1,0,1,2,3,4]);return{a,b:-2*a*m,c_full:a*m*m+n,mode:'standard'}}
+  if(sec==='sec6'){const a=randomChoice([1,-1,2,-2]),m=randomChoice([-3,-2,-1,1,2,3]);return{a,b:-2*a*m,c_full:0,mode:'standard'}}
 }
 
 function genWrong(correct, sec){

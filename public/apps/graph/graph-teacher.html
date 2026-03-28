@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Квадраттық функция — Мұғалім</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
@@ -24,7 +26,6 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:16px;-webkit-tap-highlight-color:transparent;overflow:hidden}
 
-/* ── Screens ── */
 .screen{display:none;position:fixed;inset:0;flex-direction:column;overflow:hidden;animation:fadeUp .3s ease}
 .screen.active{display:flex}
 .si{flex:1;display:flex;flex-direction:column;align-items:center;padding:14px;overflow:hidden}
@@ -34,15 +35,15 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
 @keyframes cfFall{from{transform:translateY(-20px) rotate(0);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.4)}50%{box-shadow:0 0 0 5px rgba(5,150,105,0)}}
 
-/* ── Components ── */
-.logo{font-size:1.4rem;font-weight:800;letter-spacing:-.5px}
+.logo{font-size:1.5rem;font-weight:800;letter-spacing:-.5px}
 .logo b{color:var(--primary)}
-.logo-sub{color:var(--muted);font-size:.76rem;margin-top:2px}
+.logo-sub{color:var(--muted);font-size:.78rem;margin-top:2px}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow-sm)}
-.card-title{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.card-title{font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border:none;border-radius:12px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;touch-action:manipulation;min-height:48px}
 .btn:active{transform:scale(.97)}
 .btn-block{width:100%}
@@ -61,89 +62,105 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .err{background:var(--red-light);border:1px solid var(--red-border);border-radius:10px;padding:10px 14px;color:var(--red);font-size:.82rem;font-weight:500;display:none;margin-bottom:10px}
 .err.on{display:block}
 
+/* Connection pill */
+.conn-pill{position:fixed;top:10px;right:14px;z-index:100;display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.66rem;font-weight:700;box-shadow:var(--shadow-sm);transition:all .3s}
+.conn-pill .cd{width:7px;height:7px;border-radius:50%;transition:background .3s}
+.conn-pill.ok{border-color:var(--green-border);color:var(--green)}.conn-pill.ok .cd{background:var(--green)}
+.conn-pill.err{border-color:var(--red-border);color:var(--red)}.conn-pill.err .cd{background:var(--red);animation:pulse 1s infinite}
+.conn-pill.wait{border-color:var(--amber-border);color:var(--amber)}.conn-pill.wait .cd{background:var(--amber);animation:pulse 1s infinite}
+
 /* ── SETUP ── */
-.setup-wrap{width:100%;max-width:640px;height:100%;display:flex;flex-direction:column}
-.setup-hero{text-align:center;margin-bottom:14px;flex-shrink:0}
+.setup-wrap{width:100%;max-width:720px;height:100%;display:flex;flex-direction:column}
+.setup-hero{text-align:center;margin-bottom:16px;flex-shrink:0}
 .setup-scroll{flex:1;overflow-y:auto;min-height:0;margin-bottom:12px}
-.sec-group{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
-.sec-group-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:7px;border-bottom:1.5px solid var(--border)}
-.sec-group-title{font-weight:800;font-size:.88rem}
-.sec-group-all{font-size:.7rem;background:var(--bg3);border:none;padding:5px 12px;border-radius:7px;cursor:pointer;color:var(--primary);font-weight:700;touch-action:manipulation}
-.sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
-.sec-btn{padding:12px 10px;border-radius:10px;border:2px solid var(--border);background:var(--bg2);font-size:.78rem;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;touch-action:manipulation;min-height:52px}
+.sec-group{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+.sec-group-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border)}
+.sec-group-title{font-weight:800;font-size:.94rem}
+.sec-group-all{font-size:.72rem;background:var(--bg3);border:none;padding:6px 14px;border-radius:8px;cursor:pointer;color:var(--primary);font-weight:700;touch-action:manipulation;transition:all .15s}
+.sec-group-all:hover{background:var(--primary-light)}
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:640px){.sec-grid{grid-template-columns:repeat(2,1fr)}}
+.sec-btn{padding:18px 14px;border-radius:14px;border:2.5px solid var(--border);background:var(--bg2);cursor:pointer;transition:all .2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;touch-action:manipulation;min-height:88px;justify-content:center}
+.sec-btn:hover{border-color:rgba(67,56,202,.4);background:var(--primary-light)}
 .sec-btn:active{transform:scale(.96)}
-.sec-btn.sel{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;box-shadow:0 3px 12px rgba(67,56,202,.25)}
-.sec-ex{font-size:.65rem;opacity:.7;font-weight:600;font-family:'JetBrains Mono',monospace}
+.sec-btn.sel{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(67,56,202,.3)}
+.sec-btn .sec-formula{font-size:1.1rem;line-height:1.3;pointer-events:none}
+.sec-btn.sel .katex{color:#fff!important}
+.sec-btn .sec-ex{font-size:.66rem;opacity:.55;font-weight:600;font-family:'JetBrains Mono',monospace}
+.sec-btn.sel .sec-ex{opacity:.75;color:#e0e7ff}
 
 /* ── LOBBY ── */
 .lobby-wrap{width:100%;max-width:860px;height:100%;display:flex;flex-direction:column}
 .lobby-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;flex-shrink:0}
-.code-panel{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;box-shadow:var(--shadow);flex-shrink:0;margin-bottom:8px}
+.code-panel{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px 22px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;box-shadow:var(--shadow);flex-shrink:0;margin-bottom:8px}
 .code-left{flex:1;min-width:180px}
-.code-lbl{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.code-val{font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:700;color:var(--primary);letter-spacing:8px;line-height:1}
-.code-hint{font-size:.7rem;color:var(--muted);margin-top:5px}
+.code-lbl{font-size:.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.code-val{font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:700;color:var(--primary);letter-spacing:8px;line-height:1}
+.code-hint{font-size:.72rem;color:var(--muted);margin-top:5px}
 #qr-box{cursor:pointer;flex-shrink:0}
 #qr-box canvas,#qr-box img{border-radius:8px!important;display:block}
 .lobby-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;overflow:hidden}
 @media(max-width:600px){.lobby-body{grid-template-columns:1fr}}
 .student-list{display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:100%;margin-top:4px}
-.s-join{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;animation:slideIn .2s ease}
-.s-join-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.68rem;flex-shrink:0}
-.s-join-name{font-weight:700;font-size:.78rem}
-.s-join-sub{font-size:.64rem;color:var(--green)}
+.s-join{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;animation:slideIn .2s ease}
+.s-join-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0}
+.s-join-name{font-weight:700;font-size:.82rem}
+.s-join-sub{font-size:.66rem;color:var(--green)}
 
 /* ── LIVE ── */
 .live-wrap{width:100%;max-width:1200px;height:100%;display:flex;flex-direction:column}
-.live-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;flex-shrink:0;margin-bottom:8px}
-.live-title{font-size:1rem;font-weight:800}
-.live-meta{font-size:.68rem;color:var(--muted)}
-.live-controls{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-.stat-pill{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.7rem;font-weight:700;display:flex;align-items:center;gap:4px;white-space:nowrap}
-.code-pill{font-family:'JetBrains Mono',monospace;background:var(--primary-light);border:1px solid rgba(67,56,202,.2);color:var(--primary);border-radius:7px;padding:4px 12px;font-size:.78rem;font-weight:700;letter-spacing:3px;cursor:pointer;touch-action:manipulation}
+.live-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;flex-shrink:0;margin-bottom:10px}
+.live-title{font-size:1.1rem;font-weight:800}
+.live-meta{font-size:.7rem;color:var(--muted)}
+.live-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.stat-pill{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:.72rem;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.code-pill{font-family:'JetBrains Mono',monospace;background:var(--primary-light);border:1px solid rgba(67,56,202,.2);color:var(--primary);border-radius:8px;padding:5px 14px;font-size:.8rem;font-weight:700;letter-spacing:3px;cursor:pointer;touch-action:manipulation}
 .cards-wrap{flex:1;overflow-y:auto;min-height:0;padding:2px}
-.cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-@media(max-width:900px){.cards-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:600px){.cards-grid{grid-template-columns:repeat(2,1fr);gap:6px}}
+.cards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:960px){.cards-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.cards-grid{grid-template-columns:repeat(2,1fr);gap:7px}}
 
-/* Student card */
-.s-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;position:relative;overflow:hidden;animation:pop .3s ease;transition:border-color .3s,background .3s}
-.s-card.flash-ok{border-color:var(--green);background:var(--green-light)}
-.s-card.flash-err{border-color:var(--red);background:var(--red-light)}
-.s-card:nth-child(1){border-color:#fcd34d;background:#fffdf0}
-.s-card:nth-child(2){border-color:#d1d5de;background:#fafbfc}
-.s-card:nth-child(3){border-color:#fdba74;background:#fffaf5}
-.s-card-top{display:flex;align-items:center;gap:7px;margin-bottom:7px}
-.s-card-rank{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:800;width:20px;text-align:center;flex-shrink:0}
-.s-card-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0}
-.s-card-name{font-weight:700;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-/* Focus dot — green = on screen, red pulsing = away */
-.focus-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s}
-.focus-dot.on{background:var(--green);box-shadow:0 0 4px rgba(5,150,105,.6)}
-.focus-dot.off{background:var(--red);box-shadow:0 0 4px rgba(220,38,38,.5);animation:pulse 1s infinite}
-/* Tab switch warning badge */
-.tab-warn{font-size:.56rem;color:var(--red);font-weight:700;background:var(--red-light);border:1px solid var(--red-border);border-radius:5px;padding:1px 5px;flex-shrink:0}
-.s-card-stats{display:flex;gap:6px;align-items:center}
-.s-stat{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700}
-.s-stat.g{color:var(--green)}.s-stat.r{color:var(--red)}
-.s-card-pct{position:absolute;top:8px;right:10px;font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:800}
-.s-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden}
-.s-bar-fill{height:100%;border-radius:2px;transition:width .4s}
-.s-total{font-size:.6rem;color:var(--muted);margin-top:3px;font-family:'JetBrains Mono',monospace}
+/* ── Student card — improved ── */
+.s-card{background:var(--bg2);border:2px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden;animation:pop .35s ease;transition:border-color .4s,background .4s,box-shadow .4s}
+.s-card.flash-ok{border-color:var(--green)!important;background:var(--green-light)!important;box-shadow:0 0 16px rgba(5,150,105,.15)}
+.s-card.flash-err{border-color:var(--red)!important;background:var(--red-light)!important;box-shadow:0 0 16px rgba(220,38,38,.15)}
+.s-card[data-rank="1"]{border-color:#fbbf24;background:linear-gradient(135deg,#fffdf0,#fef9e7);box-shadow:0 2px 12px rgba(251,191,36,.12)}
+.s-card[data-rank="2"]{border-color:#d1d5de;background:linear-gradient(135deg,#fafbfc,#f4f5f7)}
+.s-card[data-rank="3"]{border-color:#fdba74;background:linear-gradient(135deg,#fffaf5,#fef3e2)}
+.s-card-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.s-card-rank{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:800;width:24px;text-align:center;flex-shrink:0}
+.s-card-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.76rem;flex-shrink:0;border:2px solid rgba(67,56,202,.12)}
+.s-card-name{font-weight:700;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.s-card-pct{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:800;flex-shrink:0}
+.s-card-stats-row{display:flex;gap:4px;margin-bottom:8px}
+.s-stat-box{flex:1;background:var(--bg);border-radius:8px;padding:6px 4px;text-align:center}
+.s-stat-val{font-family:'JetBrains Mono',monospace;font-size:.84rem;font-weight:800}
+.s-stat-val.g{color:var(--green)}.s-stat-val.r{color:var(--red)}.s-stat-val.a{color:var(--amber)}
+.s-stat-lbl{font-size:.5rem;text-transform:uppercase;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-top:1px}
+.s-bar{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.s-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.s-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.s-focus{display:flex;align-items:center;gap:4px;font-size:.64rem;font-weight:600}
+.s-focus-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.s-focus-dot.on{background:var(--green);animation:breathe 2s infinite}
+.s-focus-dot.off{background:var(--red);animation:pulse 1s infinite}
+.s-focus-text{color:var(--muted)}
+.s-focus-text.away{color:var(--red)}
+.tab-warn{font-size:.58rem;color:var(--red);font-weight:700;background:var(--red-light);border:1px solid var(--red-border);border-radius:6px;padding:2px 7px;display:flex;align-items:center;gap:3px}
 
 /* ── RESULTS ── */
 .results-wrap{width:100%;max-width:800px;height:100%;display:flex;flex-direction:column;overflow:hidden}
 .results-body{flex:1;overflow-y:auto;min-height:0;padding-bottom:16px}
-.lb-row{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:5px;box-shadow:var(--shadow-sm)}
+.lb-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:6px;box-shadow:var(--shadow-sm)}
 .lb-row:nth-child(1){background:#fffbeb;border-color:#fde68a}
 .lb-row:nth-child(2){background:#f8f9fa;border-color:#d1d5de}
 .lb-row:nth-child(3){background:#fef3e2;border-color:#fed7aa}
-.lb-rank{font-family:'JetBrains Mono',monospace;font-size:.84rem;font-weight:700;width:24px;text-align:center;flex-shrink:0}
-.lb-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;flex-shrink:0}
+.lb-rank{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:700;width:28px;text-align:center;flex-shrink:0}
+.lb-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.76rem;flex-shrink:0}
 .lb-info{flex:1;min-width:0}
-.lb-name{font-weight:700;font-size:.84rem}
-.lb-detail{font-size:.68rem;color:var(--muted);margin-top:1px;font-family:'JetBrains Mono',monospace}
-.lb-pct{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:800;flex-shrink:0}
+.lb-name{font-weight:700;font-size:.88rem}
+.lb-detail{font-size:.7rem;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.lb-pct{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:800;flex-shrink:0}
 
 /* QR overlay */
 .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px)}
@@ -152,7 +169,6 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .qr-modal-code{font-family:'JetBrains Mono',monospace;font-size:3rem;font-weight:700;color:var(--primary);letter-spacing:12px;margin-top:16px}
 .qr-modal-hint{color:var(--muted);font-size:.84rem;margin-top:8px}
 
-/* Toast */
 #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:10px 22px;font-size:.84rem;font-weight:600;z-index:9999;transition:transform .28s ease;white-space:nowrap;box-shadow:var(--shadow-lg)}
 #toast.on{transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:var(--green-border);color:var(--green)}
@@ -165,6 +181,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <body>
 <div id="toast"></div>
 <div class="cfw" id="confetti"></div>
+<div class="conn-pill wait" id="conn-pill"><span class="cd"></span><span id="conn-txt">Қосылуда...</span></div>
 
 <!-- QR overlay -->
 <div class="qr-overlay" id="qr-overlay" onclick="closeQR(event)">
@@ -189,27 +206,11 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
             <span class="sec-group-title">📊 Бөлімдер</span>
             <button class="sec-group-all" onclick="toggleAll()">Бәрін таңдау</button>
           </div>
-          <div class="sec-grid">
-            <button class="sec-btn" data-sec="sec1" onclick="toggleSec(this)">
-              <span>y = ax²</span><span class="sec-ex">y = 2x², y = −x²</span>
-            </button>
-            <button class="sec-btn" data-sec="sec2" onclick="toggleSec(this)">
-              <span>y = ax² + c</span><span class="sec-ex">y = x² + 3</span>
-            </button>
-            <button class="sec-btn" data-sec="sec3" onclick="toggleSec(this)">
-              <span>y = a(x − m)²</span><span class="sec-ex">y = (x−2)²</span>
-            </button>
-            <button class="sec-btn" data-sec="sec4" onclick="toggleSec(this)">
-              <span>y = a(x − m)² + n</span><span class="sec-ex">y = (x−1)²+2</span>
-            </button>
-            <button class="sec-btn" data-sec="sec5" onclick="toggleSec(this)">
-              <span>y = ax² + bx + c</span><span class="sec-ex">y = x²−4x+3</span>
-            </button>
-          </div>
+          <div class="sec-grid" id="sec-grid"></div>
         </div>
       </div>
       <div class="err" id="setup-err"></div>
-      <button class="btn btn-green btn-block" style="padding:14px;font-size:.92rem" onclick="createRoom()">🚀 Бөлме құру</button>
+      <button class="btn btn-green btn-block" id="create-btn" style="padding:14px;font-size:.94rem" onclick="createRoom()">🚀 Бөлме құру</button>
     </div>
   </div>
 </div>
@@ -241,8 +242,8 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
           <div class="card-title">Оқушылар</div>
           <div style="display:flex;align-items:baseline;gap:5px;margin-bottom:4px;flex-shrink:0">
-            <span style="font-size:1.6rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--primary)" id="lobby-count">0</span>
-            <span style="color:var(--muted);font-size:.76rem">дайын</span>
+            <span style="font-size:1.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--primary)" id="lobby-count">0</span>
+            <span style="color:var(--muted);font-size:.78rem">дайын</span>
           </div>
           <div class="student-list" id="lobby-list">
             <div class="dots" style="padding:8px 0"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="color:var(--muted);font-size:.78rem;margin-left:6px">Күтілуде…</span></div>
@@ -250,7 +251,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         </div>
         <div class="card">
           <div class="card-title">Нұсқаулық</div>
-          <div style="font-size:.78rem;color:var(--muted);line-height:1.9">
+          <div style="font-size:.82rem;color:var(--muted);line-height:2">
             1. Экранды тақтаға көрсетіңіз<br>
             2. Оқушылар QR кодты сканерлейді<br>
             3. Атын жазып кіреді<br>
@@ -260,7 +261,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         </div>
       </div>
       <div style="flex-shrink:0;margin-top:8px">
-        <button class="btn btn-green btn-block" id="start-btn" onclick="startQuiz()" style="padding:14px;font-size:.92rem" disabled>▶ Бастау (оқушылар күтілуде…)</button>
+        <button class="btn btn-green btn-block" id="start-btn" onclick="startQuiz()" style="padding:14px;font-size:.94rem" disabled>▶ Бастау (оқушылар күтілуде…)</button>
       </div>
     </div>
   </div>
@@ -295,371 +296,236 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 <div class="screen" id="s-results">
   <div class="si top">
     <div class="results-wrap">
-      <div style="text-align:center;margin-bottom:12px;flex-shrink:0">
-        <div style="font-size:2rem;margin-bottom:4px">🏆</div>
-        <div style="font-size:1.4rem;font-weight:800;margin-bottom:3px">Нәтижелер</div>
-        <div style="color:var(--muted);font-size:.8rem" id="res-sub"></div>
+      <div style="text-align:center;margin-bottom:14px;flex-shrink:0">
+        <div style="font-size:2.2rem;margin-bottom:4px">🏆</div>
+        <div style="font-size:1.5rem;font-weight:800;margin-bottom:3px">Нәтижелер</div>
+        <div style="color:var(--muted);font-size:.82rem" id="res-sub"></div>
       </div>
       <div class="results-body">
         <div class="card" style="margin-bottom:12px">
           <div class="card-title">🏅 Рейтинг</div>
           <div id="leaderboard"></div>
         </div>
-        <button class="btn btn-primary btn-block" onclick="newSession()" style="padding:13px">← Жаңа сабақ</button>
+        <button class="btn btn-primary btn-block" onclick="newSession()" style="padding:14px">← Жаңа сабақ</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────
 const STUDENT_URL = 'https://sultan19235.github.io/mathsabaq/public/apps/graph/graph-student.html';
 const SERVER_URL  = 'https://mathsabaq.online';
 
-const SEC_NAMES = {
-  sec1:'y = ax²', sec2:'y = ax² + c', sec3:'y = a(x−m)²',
-  sec4:'y = a(x−m)² + n', sec5:'y = ax² + bx + c'
-};
+const SECTIONS = [
+  { id:'sec1', formula:'y = ax^2',           example:'y=2x²,  y=−x²' },
+  { id:'sec2', formula:'y = ax^2 + c',       example:'y=x²+3' },
+  { id:'sec3', formula:'y = a(x-m)^2',       example:'y=(x−2)²' },
+  { id:'sec4', formula:'y = a(x-m)^2 + n',   example:'y=(x−1)²+2' },
+  { id:'sec5', formula:'y = ax^2 + bx + c',  example:'y=x²−4x+3' },
+  { id:'sec6', formula:'y = ax^2 + bx',      example:'y=x²−4x' }
+];
+const SEC_NAMES = {};
+SECTIONS.forEach(s => SEC_NAMES[s.id] = s.formula);
 
-// ── State ────────────────────────────────────────────────
 const socket = io(SERVER_URL, {
   transports: ['websocket', 'polling'],
   reconnection: true,
-  reconnectionAttempts: 10,
+  reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
-  timeout: 10000
+  reconnectionDelayMax: 5000,
+  timeout: 15000
 });
 let roomCode = '', selectedSecs = new Set(), isPaused = false;
-let students = {}; // socketId → { name, score, correct, wrong, tabSwitches, focused }
+let students = {};
+
+function tex(s){ return katex.renderToString(s, { throwOnError:false }); }
+
+// ── Build section buttons with KaTeX ────────────────────
+(function renderSections(){
+  document.getElementById('sec-grid').innerHTML = SECTIONS.map(s => `
+    <button class="sec-btn" data-sec="${s.id}" onclick="toggleSec(this)">
+      <span class="sec-formula">${tex(s.formula)}</span>
+      <span class="sec-ex">${s.example}</span>
+    </button>`).join('');
+})();
 
 // ── Helpers ──────────────────────────────────────────────
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='on '+type;setTimeout(()=>el.classList.remove('on'),3000)}
+function setConn(c,t){const el=document.getElementById('conn-pill');el.className='conn-pill '+c;document.getElementById('conn-txt').textContent=t}
 
 function copyCode(){
-  navigator.clipboard?.writeText(roomCode).then(()=>toast('✅ Көшірілді!','ok')).catch(fallbackCopy)||fallbackCopy();
-  function fallbackCopy(){const t=document.createElement('textarea');t.value=roomCode;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);toast('✅ Көшірілді!','ok')}
+  navigator.clipboard?.writeText(roomCode).then(()=>toast('✅ Көшірілді!','ok')).catch(fb)||fb();
+  function fb(){const t=document.createElement('textarea');t.value=roomCode;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);toast('✅ Көшірілді!','ok')}
 }
-
 function openQR(){
-  const url = STUDENT_URL + '?join=' + roomCode;
-  document.getElementById('qr-code-big').textContent = roomCode;
-  document.getElementById('qr-hint').textContent = 'QR кодты сканерлеп кіріңіз';
+  const url=STUDENT_URL+'?join='+roomCode;
+  document.getElementById('qr-code-big').textContent=roomCode;
+  document.getElementById('qr-hint').textContent='QR кодты сканерлеп кіріңіз';
   const b=document.getElementById('qr-big');b.innerHTML='';
   try{new QRCode(b,{text:url,width:280,height:280,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
   document.getElementById('qr-overlay').classList.add('on');
 }
 function closeQR(e){if(e.target===document.getElementById('qr-overlay'))document.getElementById('qr-overlay').classList.remove('on')}
+function spawnConfetti(){const w=document.getElementById('confetti');w.innerHTML='';const cols=['#4338ca','#2563eb','#d97706','#059669','#dc2626','#0891b2','#7c3aed'];for(let i=0;i<72;i++){const e=document.createElement('div');e.className='cfp';const s=5+Math.random()*9;e.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;background:${cols[~~(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.4}s`;w.appendChild(e)}setTimeout(()=>w.innerHTML='',6000)}
 
-function spawnConfetti(){
-  const w=document.getElementById('confetti');w.innerHTML='';
-  const cols=['#4338ca','#2563eb','#d97706','#059669','#dc2626','#0891b2','#7c3aed'];
-  for(let i=0;i<72;i++){const e=document.createElement('div');e.className='cfp';const s=5+Math.random()*9;e.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;background:${cols[~~(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.4}s`;w.appendChild(e)}
-  setTimeout(()=>w.innerHTML='',6000);
-}
+// ── Section toggle ──────────────────────────────────────
+function toggleSec(el){const s=el.dataset.sec;if(selectedSecs.has(s)){selectedSecs.delete(s);el.classList.remove('sel')}else{selectedSecs.add(s);el.classList.add('sel')}}
+function toggleAll(){const btns=document.querySelectorAll('.sec-btn');const allSel=Array.from(btns).every(b=>b.classList.contains('sel'));btns.forEach(b=>{const s=b.dataset.sec;if(allSel){selectedSecs.delete(s);b.classList.remove('sel')}else if(!b.classList.contains('sel')){selectedSecs.add(s);b.classList.add('sel')}})}
 
-// ── Section selection ────────────────────────────────────
-function toggleSec(el){
-  const s=el.dataset.sec;
-  if(selectedSecs.has(s)){selectedSecs.delete(s);el.classList.remove('sel')}
-  else{selectedSecs.add(s);el.classList.add('sel')}
-}
-function toggleAll(){
-  const btns=document.querySelectorAll('.sec-btn');
-  const allSel=Array.from(btns).every(b=>b.classList.contains('sel'));
-  btns.forEach(b=>{
-    const s=b.dataset.sec;
-    if(allSel){selectedSecs.delete(s);b.classList.remove('sel')}
-    else if(!b.classList.contains('sel')){selectedSecs.add(s);b.classList.add('sel')}
-  });
-}
-
-// ── Create room ──────────────────────────────────────────
+// ── Create room ─────────────────────────────────────────
 function createRoom(){
-  if(!selectedSecs.size){
-    document.getElementById('setup-err').textContent='Кем дегенде 1 бөлімді таңдаңыз!';
-    document.getElementById('setup-err').classList.add('on');
-    return;
-  }
+  if(!selectedSecs.size){document.getElementById('setup-err').textContent='Кем дегенде 1 бөлімді таңдаңыз!';document.getElementById('setup-err').classList.add('on');return}
   document.getElementById('setup-err').classList.remove('on');
-
-  // Check socket connection first
-  if(!socket.connected){
-    document.getElementById('setup-err').textContent='Серверге қосылу жоқ. Интернетті тексеріңіз немесе бетті жаңартыңыз.';
-    document.getElementById('setup-err').classList.add('on');
-    socket.connect(); // try reconnecting
-    return;
-  }
-
-  // Show loading state on button
-  const btn = document.querySelector('#s-setup .btn-green');
-  const origText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '⏳ Бөлме құрылуда...';
-
-  // Timeout — if no response in 8s, show error
-  const timeout = setTimeout(() => {
-    btn.disabled = false;
-    btn.textContent = origText;
-    document.getElementById('setup-err').textContent='Сервер жауап бермеді. Қайта байқап көріңіз.';
-    document.getElementById('setup-err').classList.add('on');
-  }, 8000);
-
-  // Store timeout so we can clear it on success
-  window._createRoomTimeout = timeout;
-
-  socket.emit('create_room', {
-    appType: 'graph',
-    config: { sections: Array.from(selectedSecs) }
-  });
+  if(!socket.connected){document.getElementById('setup-err').textContent='Серверге қосылу жоқ. Интернетті тексеріңіз.';document.getElementById('setup-err').classList.add('on');socket.connect();return}
+  const btn=document.getElementById('create-btn');btn.disabled=true;btn.textContent='⏳ Бөлме құрылуда...';
+  window._ct=setTimeout(()=>{btn.disabled=false;btn.textContent='🚀 Бөлме құру';document.getElementById('setup-err').textContent='Сервер жауап бермеді. Қайта байқап көріңіз.';document.getElementById('setup-err').classList.add('on')},8000);
+  socket.emit('create_room',{appType:'graph',config:{sections:Array.from(selectedSecs)}});
 }
 
-socket.on('room_created', ({ code }) => {
-  // Clear the loading timeout
-  if(window._createRoomTimeout) clearTimeout(window._createRoomTimeout);
-  // Reset create button
-  const btn = document.querySelector('#s-setup .btn-green');
-  if(btn){ btn.disabled = false; btn.textContent = '🚀 Бөлме құру'; }
+// ── Connection events ───────────────────────────────────
+socket.on('connect',()=>{console.log('✅',socket.id);setConn('ok','Қосылды');document.getElementById('setup-err').classList.remove('on')});
+socket.on('connect_error',err=>{console.error('❌',err.message);setConn('err','Қосылу қатесі');const b=document.getElementById('create-btn');if(b){b.disabled=false;b.textContent='🚀 Бөлме құру'}});
+socket.on('disconnect',reason=>{console.warn('⚠',reason);setConn('wait','Қайта қосылуда...');if(document.getElementById('s-live').classList.contains('active'))toast('⚠ Байланыс үзілді...','er')});
+socket.io.on('reconnect',()=>{setConn('ok','Қосылды');toast('✅ Қайта қосылды!','ok')});
+socket.on('error',({message})=>{document.getElementById('setup-err').textContent=message||'Қате';document.getElementById('setup-err').classList.add('on');const b=document.getElementById('create-btn');if(b){b.disabled=false;b.textContent='🚀 Бөлме құру'};if(window._ct)clearTimeout(window._ct)});
 
-  roomCode = code;
-  students = {};
-  // Show code
-  document.getElementById('room-code').textContent = roomCode;
-  document.getElementById('live-code').textContent  = roomCode;
-  document.getElementById('lobby-secs').textContent = Array.from(selectedSecs).map(s=>SEC_NAMES[s]).join(', ');
-  // Small QR in lobby
-  const qrBox = document.getElementById('qr-box'); qrBox.innerHTML='';
-  const url = STUDENT_URL + '?join=' + roomCode;
-  try{new QRCode(qrBox,{text:url,width:90,height:90,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
-  updateLobby();
-  show('s-lobby');
+// ── Room created ────────────────────────────────────────
+socket.on('room_created',({code})=>{
+  if(window._ct)clearTimeout(window._ct);
+  const btn=document.getElementById('create-btn');if(btn){btn.disabled=false;btn.textContent='🚀 Бөлме құру'}
+  roomCode=code;students={};
+  document.getElementById('room-code').textContent=roomCode;
+  document.getElementById('live-code').textContent=roomCode;
+  document.getElementById('lobby-secs').textContent=Array.from(selectedSecs).map(s=>SEC_NAMES[s]).join(', ');
+  const qb=document.getElementById('qr-box');qb.innerHTML='';
+  try{new QRCode(qb,{text:STUDENT_URL+'?join='+roomCode,width:90,height:90,colorDark:'#141826',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M})}catch(e){}
+  updateLobby();show('s-lobby');
 });
 
-// ── Connection status events ─────────────────────────────
-socket.on('connect', () => {
-  console.log('✅ Socket connected:', socket.id);
-  document.getElementById('setup-err').classList.remove('on');
-});
-
-socket.on('connect_error', (err) => {
-  console.error('❌ Socket connect error:', err.message);
-  document.getElementById('setup-err').textContent = 'Серверге қосылу мүмкін болмады: ' + err.message;
-  document.getElementById('setup-err').classList.add('on');
-  // Reset create button if it was loading
-  const btn = document.querySelector('#s-setup .btn-green');
-  if(btn){ btn.disabled = false; btn.textContent = '🚀 Бөлме құру'; }
-});
-
-socket.on('disconnect', (reason) => {
-  console.warn('⚠ Socket disconnected:', reason);
-  if(document.getElementById('s-setup').classList.contains('active')){
-    document.getElementById('setup-err').textContent = 'Сервермен байланыс үзілді. Қайта қосылуда...';
-    document.getElementById('setup-err').classList.add('on');
-  }
-  if(document.getElementById('s-live').classList.contains('active')){
-    toast('⚠ Байланыс үзілді, қайта қосылуда...', 'er');
-  }
-});
-
-socket.on('reconnect', () => {
-  console.log('✅ Socket reconnected');
-  toast('✅ Қайта қосылды!', 'ok');
-  document.getElementById('setup-err').classList.remove('on');
-});
-
-// Handle generic errors from server
-socket.on('error', ({ message }) => {
-  document.getElementById('setup-err').textContent = message || 'Қате орын алды';
-  document.getElementById('setup-err').classList.add('on');
-  const btn = document.querySelector('#s-setup .btn-green');
-  if(btn){ btn.disabled = false; btn.textContent = '🚀 Бөлме құру'; }
-  if(window._createRoomTimeout) clearTimeout(window._createRoomTimeout);
-});
-
-// ── Lobby updates ────────────────────────────────────────
-socket.on('student_joined', ({ students: s }) => {
-  // Merge — preserve focus/tabSwitch data
-  Object.values(s).forEach(st => {
-    if(!students[st.socketId]) students[st.socketId] = { name:st.name, score:0, correct:0, wrong:0, tabSwitches:0, focused:true };
-    else { students[st.socketId].name = st.name; }
+// ── Student join/leave — FIXED to prevent false kicks ───
+socket.on('student_joined',({students:s})=>{
+  Object.values(s).forEach(st=>{
+    if(!students[st.socketId])students[st.socketId]={name:st.name,score:0,correct:0,wrong:0,tabSwitches:0,focused:true};
+    else students[st.socketId].name=st.name;
   });
   updateLobby();
 });
 
-socket.on('student_left', ({ students: s }) => {
-  // Rebuild from server list
-  const ids = Object.keys(s);
-  Object.keys(students).forEach(id => { if(!ids.includes(id)) delete students[id]; });
-  updateLobby();
-  renderCards();
-  updateLiveStats();
+socket.on('student_left',({students:s})=>{
+  // Build server's current student set
+  const serverIds=new Set();
+  Object.values(s).forEach(st=>serverIds.add(st.socketId));
+  Object.keys(s).forEach(k=>serverIds.add(k));
+  // Only delete students the server confirms are gone
+  Object.keys(students).forEach(id=>{
+    if(!serverIds.has(id)){
+      if(students[id]._focusTimer)clearTimeout(students[id]._focusTimer);
+      delete students[id];
+    }
+  });
+  updateLobby();renderCards();updateLiveStats();
 });
 
 function updateLobby(){
-  const arr = Object.values(students);
-  document.getElementById('lobby-count').textContent = arr.length;
-  const btn = document.getElementById('start-btn');
-  btn.disabled = arr.length === 0;
-  btn.textContent = arr.length ? `▶ Бастау (${arr.length} оқушы)` : '▶ Бастау (оқушылар күтілуде…)';
-  document.getElementById('lobby-list').innerHTML = arr.map(s =>
-    `<div class="s-join">
-      <div class="s-join-av" style="background:#4338ca18;color:#4338ca">${s.name[0].toUpperCase()}</div>
-      <div><div class="s-join-name">${esc(s.name)}</div><div class="s-join-sub">✅ Қосылды</div></div>
-    </div>`
-  ).join('') || '<div class="dots" style="padding:8px 0"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="color:var(--muted);font-size:.78rem;margin-left:6px">Күтілуде…</span></div>';
+  const arr=Object.values(students);
+  document.getElementById('lobby-count').textContent=arr.length;
+  const btn=document.getElementById('start-btn');
+  btn.disabled=arr.length===0;
+  btn.textContent=arr.length?`▶ Бастау (${arr.length} оқушы)`:'▶ Бастау (оқушылар күтілуде…)';
+  document.getElementById('lobby-list').innerHTML=arr.map(s=>
+    `<div class="s-join"><div class="s-join-av" style="background:#4338ca18;color:#4338ca">${s.name[0].toUpperCase()}</div><div><div class="s-join-name">${esc(s.name)}</div><div class="s-join-sub">✅ Қосылды</div></div></div>`
+  ).join('')||'<div class="dots" style="padding:8px 0"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="color:var(--muted);font-size:.78rem;margin-left:6px">Күтілуде…</span></div>';
 }
 
-// ── Start / pause / end ──────────────────────────────────
-function startQuiz(){
-  if(!Object.keys(students).length){toast('Оқушылар жоқ!','er');return}
-  isPaused = false;
-  socket.emit('start_quiz', { code: roomCode });
-  document.getElementById('live-meta').textContent = 'Тікелей · ' + Array.from(selectedSecs).map(s=>SEC_NAMES[s]).join(', ');
-  renderCards();
-  updateLiveStats();
-  show('s-live');
-}
+// ── Quiz control ────────────────────────────────────────
+function startQuiz(){if(!Object.keys(students).length){toast('Оқушылар жоқ!','er');return};isPaused=false;socket.emit('start_quiz',{code:roomCode});document.getElementById('live-meta').textContent='Тікелей · '+Array.from(selectedSecs).map(s=>SEC_NAMES[s]).join(', ');renderCards();updateLiveStats();show('s-live')}
+function togglePause(){isPaused=!isPaused;if(isPaused){socket.emit('pause_quiz',{code:roomCode});document.getElementById('pause-btn').textContent='▶ Жалғастыру';document.getElementById('pause-btn').className='btn btn-green btn-sm';toast('⏸ Тоқтатылды','er')}else{socket.emit('resume_quiz',{code:roomCode});document.getElementById('pause-btn').textContent='⏸ Тоқтату';document.getElementById('pause-btn').className='btn btn-amber btn-sm';toast('▶ Жалғасуда','ok')}}
+function endQuiz(){if(!confirm('Сабақты аяқтайсыз ба?'))return;socket.emit('end_quiz',{code:roomCode});showResults()}
+function backToSetup(){students={};show('s-setup')}
 
-function togglePause(){
-  isPaused = !isPaused;
-  if(isPaused){
-    socket.emit('pause_quiz', { code: roomCode });
-    document.getElementById('pause-btn').textContent = '▶ Жалғастыру';
-    document.getElementById('pause-btn').className = 'btn btn-green btn-sm';
-    toast('⏸ Тоқтатылды','er');
-  } else {
-    socket.emit('resume_quiz', { code: roomCode });
-    document.getElementById('pause-btn').textContent = '⏸ Тоқтату';
-    document.getElementById('pause-btn').className = 'btn btn-amber btn-sm';
-    toast('▶ Жалғасуда','ok');
-  }
-}
-
-function endQuiz(){
-  if(!confirm('Сабақты аяқтайсыз ба?')) return;
-  socket.emit('end_quiz', { code: roomCode });
-  showResults();
-}
-
-function backToSetup(){
-  students = {};
-  show('s-setup');
-}
-
-// ── Scores update ────────────────────────────────────────
-socket.on('scores_updated', ({ students: s, lastAnswer }) => {
-  Object.values(s).forEach(st => {
-    if(!students[st.socketId]) students[st.socketId] = { name:st.name, score:0, correct:0, wrong:0, tabSwitches:0, focused:true };
-    students[st.socketId].score   = st.score;
-    students[st.socketId].correct = st.correct;
-    students[st.socketId].wrong   = st.wrong;
-    students[st.socketId].name    = st.name;
+// ── Scores ──────────────────────────────────────────────
+socket.on('scores_updated',({students:s,lastAnswer})=>{
+  Object.values(s).forEach(st=>{
+    if(!students[st.socketId])students[st.socketId]={name:st.name,score:0,correct:0,wrong:0,tabSwitches:0,focused:true};
+    students[st.socketId].score=st.score;students[st.socketId].correct=st.correct;
+    students[st.socketId].wrong=st.wrong;students[st.socketId].name=st.name;
   });
-  renderCards();
-  updateLiveStats();
-  // Flash the card
-  if(lastAnswer){
-    const card = document.getElementById('card-' + lastAnswer.socketId);
-    if(card){
-      const cls = lastAnswer.correct ? 'flash-ok' : 'flash-err';
-      card.classList.add(cls);
-      setTimeout(()=>card.classList.remove(cls), 700);
-    }
-  }
+  renderCards();updateLiveStats();
+  if(lastAnswer){const card=document.getElementById('card-'+lastAnswer.socketId);if(card){const cls=lastAnswer.correct?'flash-ok':'flash-err';card.classList.add(cls);setTimeout(()=>card.classList.remove(cls),800)}}
 });
 
-// ── Focus / tab switch ───────────────────────────────────
-socket.on('student_tab_switch', ({ socketId, count }) => {
+// ── Tab switch / focus ──────────────────────────────────
+socket.on('student_tab_switch',({socketId,count})=>{
   if(students[socketId]){
-    students[socketId].tabSwitches = count;
-    students[socketId].focused = false;
-    // Auto-restore focused indicator after 4s (student might be back)
+    students[socketId].tabSwitches=count;students[socketId].focused=false;
     clearTimeout(students[socketId]._focusTimer);
-    students[socketId]._focusTimer = setTimeout(()=>{
-      if(students[socketId]) students[socketId].focused = true;
-      renderCards();
-    }, 4000);
-    renderCards();
-    updateLiveStats();
+    students[socketId]._focusTimer=setTimeout(()=>{if(students[socketId])students[socketId].focused=true;renderCards()},5000);
+    renderCards();updateLiveStats();
   }
 });
 
-// ── Render student cards ─────────────────────────────────
+// ── Render cards — redesigned ───────────────────────────
+const AV_COLORS=['#4338ca','#059669','#d97706','#dc2626','#0891b2','#7c3aed','#ec4899','#f97316'];
 function renderCards(){
-  const sorted = Object.entries(students).sort((a,b) => {
-    if(b[1].correct !== a[1].correct) return b[1].correct - a[1].correct;
-    return a[1].wrong - b[1].wrong;
-  });
-  const medals = ['🥇','🥈','🥉'];
-  document.getElementById('cards-grid').innerHTML = sorted.map(([sid, s], i) => {
-    const total = s.correct + s.wrong;
-    const pct   = total ? Math.round(s.correct / total * 100) : 0;
-    const col   = pct >= 70 ? 'var(--green)' : pct >= 40 ? 'var(--amber)' : 'var(--red)';
-    const barBg = pct >= 70 ? '#059669'      : pct >= 40 ? '#d97706'      : '#dc2626';
-    const warn  = s.tabSwitches > 0
-      ? `<span class="tab-warn">👀${s.tabSwitches}×</span>` : '';
-    return `
-    <div class="s-card" id="card-${sid}">
-      <div class="s-card-pct" style="color:${col}">${pct}%</div>
-      <div class="s-card-top">
-        <span class="s-card-rank">${medals[i] || (i+1)}</span>
-        <div class="s-card-av" style="background:#4338ca18;color:#4338ca">${s.name[0].toUpperCase()}</div>
+  const sorted=Object.entries(students).sort((a,b)=>{if(b[1].correct!==a[1].correct)return b[1].correct-a[1].correct;return a[1].wrong-b[1].wrong});
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('cards-grid').innerHTML=sorted.map(([sid,s],i)=>{
+    const total=s.correct+s.wrong,pct=total?Math.round(s.correct/total*100):0;
+    const col=pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+    const barBg=pct>=70?'#059669':pct>=40?'#d97706':'#dc2626';
+    const ac=AV_COLORS[i%AV_COLORS.length];
+    const warn=s.tabSwitches>0?`<span class="tab-warn">👀 ${s.tabSwitches}×</span>`:'';
+    return `<div class="s-card" id="card-${sid}" data-rank="${i+1}">
+      <div class="s-card-header">
+        <span class="s-card-rank">${medals[i]||(i+1)}</span>
+        <div class="s-card-av" style="background:${ac}18;color:${ac};border-color:${ac}30">${s.name[0].toUpperCase()}</div>
         <span class="s-card-name">${esc(s.name)}</span>
-        <span class="focus-dot ${s.focused ? 'on' : 'off'}" title="${s.focused ? 'Экранда' : 'Сыртқа шықты'}"></span>
-        ${warn}
+        <span class="s-card-pct" style="color:${col}">${pct}%</span>
       </div>
-      <div class="s-card-stats">
-        <span class="s-stat g">✅ ${s.correct}</span>
-        <span class="s-stat r">❌ ${s.wrong}</span>
+      <div class="s-card-stats-row">
+        <div class="s-stat-box"><div class="s-stat-val g">${s.correct}</div><div class="s-stat-lbl">Дұрыс</div></div>
+        <div class="s-stat-box"><div class="s-stat-val r">${s.wrong}</div><div class="s-stat-lbl">Қате</div></div>
+        <div class="s-stat-box"><div class="s-stat-val a">${total}</div><div class="s-stat-lbl">Барлығы</div></div>
       </div>
       <div class="s-bar"><div class="s-bar-fill" style="width:${pct}%;background:${barBg}"></div></div>
-      <div class="s-total">📝 ${total} есеп</div>
+      <div class="s-card-footer">
+        <div class="s-focus"><span class="s-focus-dot ${s.focused?'on':'off'}"></span><span class="s-focus-text${s.focused?'':' away'}">${s.focused?'Экранда':'Сыртта'}</span></div>
+        ${warn}
+      </div>
     </div>`;
   }).join('');
 }
 
 function updateLiveStats(){
-  const arr = Object.values(students);
-  document.getElementById('live-count').textContent = arr.length;
-  const tc = arr.reduce((s,x)=>s+x.correct,0);
-  const tt = arr.reduce((s,x)=>s+x.correct+x.wrong,0);
-  document.getElementById('avg-pct').textContent = tt ? Math.round(tc/tt*100) : 0;
-  const aw = arr.filter(s=>!s.focused).length;
-  const pill = document.getElementById('away-pill');
-  if(aw>0){pill.style.display='';document.getElementById('away-count').textContent=aw}
-  else pill.style.display='none';
+  const arr=Object.values(students);
+  document.getElementById('live-count').textContent=arr.length;
+  const tc=arr.reduce((s,x)=>s+x.correct,0),tt=arr.reduce((s,x)=>s+x.correct+x.wrong,0);
+  document.getElementById('avg-pct').textContent=tt?Math.round(tc/tt*100):0;
+  const aw=arr.filter(s=>!s.focused).length;
+  const pill=document.getElementById('away-pill');
+  if(aw>0){pill.style.display='';document.getElementById('away-count').textContent=aw}else pill.style.display='none';
 }
 
-// ── Results ──────────────────────────────────────────────
+// ── Results ─────────────────────────────────────────────
 function showResults(){
-  const arr = Object.values(students).sort((a,b)=>b.correct-a.correct);
-  const medals = ['🥇','🥈','🥉'];
-  document.getElementById('res-sub').textContent = arr.length + ' оқушы';
-  document.getElementById('leaderboard').innerHTML = arr.map((s,i)=>{
-    const total = s.correct + s.wrong;
-    const pct = total ? Math.round(s.correct/total*100) : 0;
-    const col = pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
+  const arr=Object.values(students).sort((a,b)=>b.correct-a.correct);
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('res-sub').textContent=arr.length+' оқушы';
+  document.getElementById('leaderboard').innerHTML=arr.map((s,i)=>{
+    const total=s.correct+s.wrong,pct=total?Math.round(s.correct/total*100):0;
+    const col=pct>=70?'var(--green)':pct>=40?'var(--amber)':'var(--red)';
     return `<div class="lb-row">
       <div class="lb-rank">${medals[i]||(i+1)}</div>
       <div class="lb-av" style="background:#4338ca18;color:#4338ca">${s.name[0].toUpperCase()}</div>
-      <div class="lb-info">
-        <div class="lb-name">${esc(s.name)}</div>
-        <div class="lb-detail">✅${s.correct} ❌${s.wrong} 📝${total} 📊${pct}%</div>
-      </div>
+      <div class="lb-info"><div class="lb-name">${esc(s.name)}</div><div class="lb-detail">✅ ${s.correct}  ❌ ${s.wrong}  📝 ${total}  📊 ${pct}%${s.tabSwitches>0?'  👀 '+s.tabSwitches+'×':''}</div></div>
       <div class="lb-pct" style="color:${col}">${pct}%</div>
     </div>`;
   }).join('');
-  show('s-results');
-  spawnConfetti();
+  show('s-results');spawnConfetti();
 }
-
-function newSession(){
-  students={};
-  selectedSecs.clear();
-  document.querySelectorAll('.sec-btn').forEach(b=>b.classList.remove('sel'));
-  show('s-setup');
-}
+function newSession(){students={};selectedSecs.clear();document.querySelectorAll('.sec-btn').forEach(b=>b.classList.remove('sel'));show('s-setup')}
 </script>
 </body>
 </html>
