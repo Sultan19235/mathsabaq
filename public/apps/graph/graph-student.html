@@ -221,10 +221,16 @@ const graphInstances = {};
 
 // ── URL params — auto-fill room code ────────────────────
 const urlParams = new URLSearchParams(location.search);
-const urlCode = urlParams.get('join');
+let urlCode = urlParams.get('join');
+// QR scanners sometimes add extra chars — clean it
 if(urlCode){
-  document.getElementById('scode').value = urlCode.toUpperCase();
-  document.getElementById('code-wrap').style.display = 'none'; // hide field, code already known
+  urlCode = urlCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if(urlCode.length >= 4){
+    document.getElementById('scode').value = urlCode;
+    document.getElementById('code-wrap').style.display = 'none';
+  } else {
+    urlCode = null; // invalid code, let user enter manually
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -249,7 +255,8 @@ window.addEventListener('blur', () => {
 // ── Join room ────────────────────────────────────────────
 function joinRoom(){
   const name = document.getElementById('sname').value.trim();
-  const code = (urlCode || document.getElementById('scode').value.trim()).toUpperCase();
+  // Clean the code: trim, uppercase, remove any non-alphanumeric chars
+  let code = (urlCode || document.getElementById('scode').value.trim()).toUpperCase().replace(/[^A-Z0-9]/g, '');
   const errEl = document.getElementById('join-err');
   if(!name){errEl.textContent='Атыңызды жазыңыз';errEl.classList.add('on');return}
   if(code.length < 4){errEl.textContent='Бөлме кодын енгізіңіз';errEl.classList.add('on');return}
@@ -278,20 +285,38 @@ function joinRoom(){
 
   myName = name;
   roomCode = code;
-  socket.emit('join_room', { code, name });
+  console.log('Joining room:', code, 'name:', name);
+  socket.emit('join_room', { code, name, appType: 'graph' });
 }
 
 socket.on('join_error', ({ message }) => {
   if(window._joinTimeout) clearTimeout(window._joinTimeout);
+  
+  // If first attempt was uppercase, try original case
+  if(!window._joinRetried && roomCode){
+    window._joinRetried = true;
+    const origCode = (urlCode || document.getElementById('scode').value.trim()).replace(/[^a-zA-Z0-9]/g, '');
+    if(origCode && origCode !== roomCode){
+      console.log('Retrying with original case:', origCode);
+      roomCode = origCode;
+      socket.emit('join_room', { code: origCode, name: myName, appType: 'graph' });
+      return;
+    }
+  }
+  window._joinRetried = false;
+  
   const btn = document.querySelector('#s-join .btn-primary');
   if(btn){ btn.disabled = false; btn.textContent = '🚀 Кіру'; }
   const errEl = document.getElementById('join-err');
   errEl.textContent = message;
   errEl.classList.add('on');
+  // Show the code field so user can re-enter manually
+  document.getElementById('code-wrap').style.display = '';
 });
 
 socket.on('joined', ({ status, config }) => {
   if(window._joinTimeout) clearTimeout(window._joinTimeout);
+  window._joinRetried = false;
   const btn = document.querySelector('#s-join .btn-primary');
   if(btn){ btn.disabled = false; btn.textContent = '🚀 Кіру'; }
   if(config?.sections) sections = config.sections;
