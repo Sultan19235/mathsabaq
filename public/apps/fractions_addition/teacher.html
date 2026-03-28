@@ -48,7 +48,7 @@
             margin-bottom: 10px;
             transition: background 0.2s;
         }
-        .btn:hover { background-color: var(--primary-dark); }
+        .btn:hover:not(:disabled) { background-color: var(--primary-dark); }
         .btn:disabled { background-color: #A5D6A7; cursor: not-allowed; }
         .btn-danger { background-color: var(--danger); }
         .btn-warning { background-color: var(--warning); color: #fff;}
@@ -61,9 +61,7 @@
             margin-bottom: 20px;
             text-align: center;
         }
-        .student-list {
-            list-style: none; padding: 0; margin: 0;
-        }
+        .student-list { list-style: none; padding: 0; margin: 0; }
         .student-item {
             display: flex; justify-content: space-between;
             padding: 10px; border-bottom: 1px solid #eee;
@@ -71,6 +69,7 @@
         .tab-warning { color: var(--danger); font-size: 0.8em; font-weight: bold; }
         #controls-section { display: flex; gap: 10px; flex-wrap: wrap; }
         #controls-section .btn { flex: 1; min-width: 140px; }
+        #conn-status { text-align: center; font-weight: bold; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -78,7 +77,10 @@
 <div class="card" id="setup-view">
     <h1>Fractions Addition</h1>
     <p style="text-align: center;">Teacher Dashboard</p>
-    <button class="btn" id="btn-create-room">Create Room</button>
+    
+    <p id="conn-status" style="color: var(--warning);">Connecting to server...</p>
+    
+    <button class="btn" id="btn-create-room" disabled>Create Room</button>
 </div>
 
 <div class="card hidden" id="dashboard-view">
@@ -96,17 +98,18 @@
     </div>
 
     <h3>Connected Students (<span id="student-count">0</span>)</h3>
-    <ul class="student-list" id="student-list">
-        </ul>
+    <ul class="student-list" id="student-list"></ul>
 </div>
 
 <script>
     const STUDENT_URL = 'https://sultan19235.github.io/mathsabaq/public/apps/fractions_addition/student.html';
     const SERVER_URL  = 'https://mathsabaq.online';
+    
+    console.log("Attempting to connect to:", SERVER_URL);
     const socket = io(SERVER_URL);
 
     let currentRoom = null;
-    let students = {}; // { studentName: { score: 0, tabSwitches: 0 } }
+    let students = {}; 
 
     // DOM Elements
     const setupView = document.getElementById('setup-view');
@@ -115,6 +118,7 @@
     const studentUrlDisplay = document.getElementById('student-url-display');
     const studentList = document.getElementById('student-list');
     const studentCount = document.getElementById('student-count');
+    const connStatus = document.getElementById('conn-status');
 
     // Buttons
     const btnCreateRoom = document.getElementById('btn-create-room');
@@ -123,13 +127,24 @@
     const btnResumeQuiz = document.getElementById('btn-resume-quiz');
     const btnEndQuiz = document.getElementById('btn-end-quiz');
 
-    // Math Logic Helper
-    function gcd(a, b) {
-        return b === 0 ? a : gcd(b, a % b);
-    }
+    // --- CONNECTION HANDLING ---
+    socket.on('connect', () => {
+        console.log("Successfully connected to server!");
+        connStatus.innerText = "Connected! Ready to start.";
+        connStatus.style.color = "var(--primary-dark)";
+        btnCreateRoom.disabled = false;
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error("Connection Error:", err);
+        connStatus.innerText = "Connection Failed. Check server or CORS.";
+        connStatus.style.color = "var(--danger)";
+    });
+
+    // --- MATH LOGIC ---
+    function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
 
     function generateFractionProblem() {
-        // Generate a problem: a/b + c/d
         const n1 = Math.floor(Math.random() * 5) + 1;
         const d1 = Math.floor(Math.random() * 5) + 2;
         const n2 = Math.floor(Math.random() * 5) + 1;
@@ -158,20 +173,32 @@
             const data = students[name];
             const li = document.createElement('li');
             li.className = 'student-item';
-            
             let warning = data.tabSwitches > 0 ? `<span class="tab-warning">(Tab Switched x${data.tabSwitches})</span>` : '';
             li.innerHTML = `<span>${name} ${warning}</span> <strong>Score: ${data.score}</strong>`;
             studentList.appendChild(li);
         });
     }
 
-    // Actions
+    // --- ACTIONS ---
     btnCreateRoom.addEventListener('click', () => {
+        console.log("Emitting 'create_room' event...");
+        btnCreateRoom.innerText = "Creating...";
+        btnCreateRoom.disabled = true;
         socket.emit('create_room');
+        
+        // Safety timeout in case server doesn't respond
+        setTimeout(() => {
+            if(!currentRoom) {
+                btnCreateRoom.innerText = "Create Room";
+                btnCreateRoom.disabled = false;
+                alert("Server didn't respond. Is 'create_room' set up on the backend?");
+            }
+        }, 5000);
     });
 
     btnStartQuiz.addEventListener('click', () => {
         const problem = generateFractionProblem();
+        console.log("Starting quiz with problem:", problem);
         socket.emit('start_quiz', { room: currentRoom, problemData: problem });
     });
 
@@ -193,9 +220,17 @@
         location.reload();
     });
 
-    // Socket Listeners
+    // --- SOCKET LISTENERS ---
     socket.on('room_created', (data) => {
-        currentRoom = data.room || data; // Handle depending on exact router payload
+        console.log("Received 'room_created' event:", data);
+        // Handle object or string payload from backend
+        currentRoom = typeof data === 'object' ? (data.room || data.roomId || data.id) : data; 
+        
+        if (!currentRoom) {
+            console.error("Room created event fired, but no room ID was found in the payload.");
+            return;
+        }
+
         setupView.classList.add('hidden');
         dashboardView.classList.remove('hidden');
         roomCodeDisplay.innerText = currentRoom;
@@ -203,24 +238,23 @@
     });
 
     socket.on('student_joined', (data) => {
-        const name = data.student || data.name;
-        if (!students[name]) {
+        console.log("Student joined:", data);
+        const name = typeof data === 'object' ? (data.student || data.name) : data;
+        if (name && !students[name]) {
             students[name] = { score: 0, tabSwitches: 0 };
             updateStudentUI();
         }
     });
 
     socket.on('student_left', (data) => {
-        const name = data.student || data.name;
-        if (students[name]) {
+        const name = typeof data === 'object' ? (data.student || data.name) : data;
+        if (name && students[name]) {
             delete students[name];
             updateStudentUI();
         }
     });
 
     socket.on('scores_updated', (data) => {
-        // Expected data format from stateless router forwarding submit_answer:
-        // { student: "Name", correct: true } or { scores: {...} } depending on router
         const name = data.student || data.name;
         if (students[name] && data.correct) {
             students[name].score += 1;

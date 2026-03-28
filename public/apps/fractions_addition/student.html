@@ -14,6 +14,8 @@
             --bg-color: #E8F5E9;
             --card-bg: #FFFFFF;
             --text: #333333;
+            --danger: #f44336;
+            --warning: #ff9800;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -48,26 +50,27 @@
             background-color: var(--primary); color: white; border: none; padding: 12px;
             border-radius: 6px; font-size: 16px; cursor: pointer; width: 100%; font-weight: bold;
         }
-        .btn:hover { background-color: var(--primary-dark); }
+        .btn:hover:not(:disabled) { background-color: var(--primary-dark); }
+        .btn:disabled { background-color: #A5D6A7; cursor: not-allowed; }
         .hidden { display: none !important; }
-        #math-container {
-            font-size: 2em; margin: 30px 0; color: var(--text);
-        }
-        #feedback-msg {
-            font-weight: bold; margin-top: 15px; min-height: 24px;
-        }
+        #math-container { font-size: 2em; margin: 30px 0; color: var(--text); }
+        #feedback-msg { font-weight: bold; margin-top: 15px; min-height: 24px; }
         .correct { color: #2E7D32; }
         .incorrect { color: #C62828; }
         .status-badge {
             background-color: #FFF9C4; color: #F57F17; padding: 5px 10px; 
             border-radius: 20px; font-size: 0.9em; display: inline-block; margin-bottom: 15px;
         }
+        #conn-status { text-align: center; font-weight: bold; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card" id="join-view">
     <h2>Join Math Quiz</h2>
+    
+    <p id="conn-status" style="color: var(--warning);">Connecting to server...</p>
+
     <div class="input-group">
         <label>Room Code</label>
         <input type="text" id="input-room" placeholder="Enter code from teacher">
@@ -76,7 +79,7 @@
         <label>Your Name</label>
         <input type="text" id="input-name" placeholder="First Name">
     </div>
-    <button class="btn" id="btn-join">Join Room</button>
+    <button class="btn" id="btn-join" disabled>Join Room</button>
 </div>
 
 <div class="card hidden" id="waiting-view">
@@ -115,22 +118,50 @@
     const inputAnswer = document.getElementById('input-answer');
     const feedbackMsg = document.getElementById('feedback-msg');
     const statusIndicator = document.getElementById('status-indicator');
+    const connStatus = document.getElementById('conn-status');
 
     const btnJoin = document.getElementById('btn-join');
     const btnSubmit = document.getElementById('btn-submit');
 
-    // Anti-Cheat: Tab Switch Detection
+    // --- CONNECTION HANDLING ---
+    socket.on('connect', () => {
+        console.log("Connected to server!");
+        connStatus.innerText = "Connected! Enter details to join.";
+        connStatus.style.color = "var(--primary-dark)";
+        btnJoin.disabled = false;
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error("Connection Error:", err);
+        connStatus.innerText = "Connection Failed. Check server.";
+        connStatus.style.color = "var(--danger)";
+    });
+
+    // --- ANTI-CHEAT ---
     document.addEventListener('visibilitychange', () => {
         if (document.hidden && myRoom) {
             socket.emit('tab_switch', { room: myRoom, name: myName });
         }
     });
 
+    // --- ACTIONS ---
     btnJoin.addEventListener('click', () => {
         myRoom = document.getElementById('input-room').value.trim();
         myName = document.getElementById('input-name').value.trim();
         if (myRoom && myName) {
+            console.log("Emitting 'join_room'...");
+            btnJoin.innerText = "Joining...";
+            btnJoin.disabled = true;
             socket.emit('join_room', { room: myRoom, name: myName });
+            
+            // Safety timeout
+            setTimeout(() => {
+                if(!waitingView.classList.contains('hidden') === false) {
+                    btnJoin.innerText = "Join Room";
+                    btnJoin.disabled = false;
+                    alert("No response from server. Check room code.");
+                }
+            }, 5000);
         }
     });
 
@@ -142,37 +173,34 @@
 
         const isCorrect = (userAns === currentAnswer);
         
-        // Show local feedback
         feedbackMsg.innerText = isCorrect ? 'Correct!' : 'Try Again!';
         feedbackMsg.className = isCorrect ? 'correct' : 'incorrect';
         
         if (isCorrect) {
-            // Emit to server to update score
             socket.emit('submit_answer', { room: myRoom, name: myName, correct: true });
             btnSubmit.disabled = true;
             inputAnswer.disabled = true;
         }
     });
 
-    // Enter key support
     inputAnswer.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') btnSubmit.click();
     });
 
-    // Socket Listeners
+    // --- SOCKET LISTENERS ---
     socket.on('joined', () => {
+        console.log("Successfully joined room!");
         joinView.classList.add('hidden');
         waitingView.classList.remove('hidden');
     });
 
     socket.on('quiz_started', (data) => {
-        const problemData = data.problemData || data; // Extract problem based on routing payload structure
+        console.log("Quiz started:", data);
+        const problemData = data.problemData || data; 
         currentAnswer = problemData.answer;
         
-        // Render KaTeX
         katex.render(problemData.tex, mathContainer, { throwOnError: false });
         
-        // Reset UI
         inputAnswer.value = '';
         inputAnswer.disabled = false;
         btnSubmit.disabled = false;
@@ -194,7 +222,7 @@
 
     socket.on('quiz_resumed', () => {
         isPaused = false;
-        if(feedbackMsg.innerText !== 'Correct!') { // Don't re-enable if already solved
+        if(feedbackMsg.innerText !== 'Correct!') {
             inputAnswer.disabled = false;
             btnSubmit.disabled = false;
         }
