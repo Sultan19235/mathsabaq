@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher - Fractions Addition</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-dark: #388E3C;
+            --bg-color: #E8F5E9;
+            --card-bg: #FFFFFF;
+            --text: #333333;
+            --danger: #f44336;
+            --warning: #ff9800;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        h1, h2, h3 { color: var(--primary-dark); text-align: center; margin-top: 0; }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: var(--primary-dark); }
+        .btn:disabled { background-color: #A5D6A7; cursor: not-allowed; }
+        .btn-danger { background-color: var(--danger); }
+        .btn-warning { background-color: var(--warning); color: #fff;}
+        .hidden { display: none !important; }
+        .info-box {
+            background: #f1f8e9;
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .student-list {
+            list-style: none; padding: 0; margin: 0;
+        }
+        .student-item {
+            display: flex; justify-content: space-between;
+            padding: 10px; border-bottom: 1px solid #eee;
+        }
+        .tab-warning { color: var(--danger); font-size: 0.8em; font-weight: bold; }
+        #controls-section { display: flex; gap: 10px; flex-wrap: wrap; }
+        #controls-section .btn { flex: 1; min-width: 140px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="setup-view">
+    <h1>Fractions Addition</h1>
+    <p style="text-align: center;">Teacher Dashboard</p>
+    <button class="btn" id="btn-create-room">Create Room</button>
+</div>
+
+<div class="card hidden" id="dashboard-view">
+    <h2>Room Status</h2>
+    <div class="info-box">
+        <p><strong>Room Code:</strong> <span id="room-code-display" style="font-size: 1.5em; color: var(--primary-dark);">...</span></p>
+        <p style="font-size: 0.8em; word-break: break-all;" id="student-url-display"></p>
+    </div>
+
+    <div id="controls-section">
+        <button class="btn" id="btn-start-quiz">Send New Problem</button>
+        <button class="btn btn-warning" id="btn-pause-quiz">Pause</button>
+        <button class="btn btn-warning hidden" id="btn-resume-quiz">Resume</button>
+        <button class="btn btn-danger" id="btn-end-quiz">End Quiz</button>
+    </div>
+
+    <h3>Connected Students (<span id="student-count">0</span>)</h3>
+    <ul class="student-list" id="student-list">
+        </ul>
+</div>
+
+<script>
+    const STUDENT_URL = 'https://sultan19235.github.io/mathsabaq/public/apps/fractions_addition/student.html';
+    const SERVER_URL  = 'https://mathsabaq.online';
+    const socket = io(SERVER_URL);
+
+    let currentRoom = null;
+    let students = {}; // { studentName: { score: 0, tabSwitches: 0 } }
+
+    // DOM Elements
+    const setupView = document.getElementById('setup-view');
+    const dashboardView = document.getElementById('dashboard-view');
+    const roomCodeDisplay = document.getElementById('room-code-display');
+    const studentUrlDisplay = document.getElementById('student-url-display');
+    const studentList = document.getElementById('student-list');
+    const studentCount = document.getElementById('student-count');
+
+    // Buttons
+    const btnCreateRoom = document.getElementById('btn-create-room');
+    const btnStartQuiz = document.getElementById('btn-start-quiz');
+    const btnPauseQuiz = document.getElementById('btn-pause-quiz');
+    const btnResumeQuiz = document.getElementById('btn-resume-quiz');
+    const btnEndQuiz = document.getElementById('btn-end-quiz');
+
+    // Math Logic Helper
+    function gcd(a, b) {
+        return b === 0 ? a : gcd(b, a % b);
+    }
+
+    function generateFractionProblem() {
+        // Generate a problem: a/b + c/d
+        const n1 = Math.floor(Math.random() * 5) + 1;
+        const d1 = Math.floor(Math.random() * 5) + 2;
+        const n2 = Math.floor(Math.random() * 5) + 1;
+        const d2 = Math.floor(Math.random() * 5) + 2;
+        
+        const num = (n1 * d2) + (n2 * d1);
+        const den = d1 * d2;
+        const divisor = gcd(num, den);
+        
+        const ansNum = num / divisor;
+        const ansDen = den / divisor;
+        const ansStr = ansDen === 1 ? `${ansNum}` : `${ansNum}/${ansDen}`;
+        
+        return {
+            tex: `\\frac{${n1}}{${d1}} + \\frac{${n2}}{${d2}} = ?`,
+            answer: ansStr
+        };
+    }
+
+    function updateStudentUI() {
+        studentList.innerHTML = '';
+        const names = Object.keys(students);
+        studentCount.innerText = names.length;
+        
+        names.forEach(name => {
+            const data = students[name];
+            const li = document.createElement('li');
+            li.className = 'student-item';
+            
+            let warning = data.tabSwitches > 0 ? `<span class="tab-warning">(Tab Switched x${data.tabSwitches})</span>` : '';
+            li.innerHTML = `<span>${name} ${warning}</span> <strong>Score: ${data.score}</strong>`;
+            studentList.appendChild(li);
+        });
+    }
+
+    // Actions
+    btnCreateRoom.addEventListener('click', () => {
+        socket.emit('create_room');
+    });
+
+    btnStartQuiz.addEventListener('click', () => {
+        const problem = generateFractionProblem();
+        socket.emit('start_quiz', { room: currentRoom, problemData: problem });
+    });
+
+    btnPauseQuiz.addEventListener('click', () => {
+        socket.emit('pause_quiz', { room: currentRoom });
+        btnPauseQuiz.classList.add('hidden');
+        btnResumeQuiz.classList.remove('hidden');
+    });
+
+    btnResumeQuiz.addEventListener('click', () => {
+        socket.emit('resume_quiz', { room: currentRoom });
+        btnResumeQuiz.classList.add('hidden');
+        btnPauseQuiz.classList.remove('hidden');
+    });
+
+    btnEndQuiz.addEventListener('click', () => {
+        socket.emit('end_quiz', { room: currentRoom });
+        alert('Quiz Ended.');
+        location.reload();
+    });
+
+    // Socket Listeners
+    socket.on('room_created', (data) => {
+        currentRoom = data.room || data; // Handle depending on exact router payload
+        setupView.classList.add('hidden');
+        dashboardView.classList.remove('hidden');
+        roomCodeDisplay.innerText = currentRoom;
+        studentUrlDisplay.innerText = `Share link: ${STUDENT_URL}`;
+    });
+
+    socket.on('student_joined', (data) => {
+        const name = data.student || data.name;
+        if (!students[name]) {
+            students[name] = { score: 0, tabSwitches: 0 };
+            updateStudentUI();
+        }
+    });
+
+    socket.on('student_left', (data) => {
+        const name = data.student || data.name;
+        if (students[name]) {
+            delete students[name];
+            updateStudentUI();
+        }
+    });
+
+    socket.on('scores_updated', (data) => {
+        // Expected data format from stateless router forwarding submit_answer:
+        // { student: "Name", correct: true } or { scores: {...} } depending on router
+        const name = data.student || data.name;
+        if (students[name] && data.correct) {
+            students[name].score += 1;
+            updateStudentUI();
+        }
+    });
+
+    socket.on('student_tab_switch', (data) => {
+        const name = data.student || data.name;
+        if (students[name]) {
+            students[name].tabSwitches += 1;
+            updateStudentUI();
+        }
+    });
+</script>
+</body>
+</html>
